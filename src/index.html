@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart & Sword - RPG Dating Adventure</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>⚔️ Heart & Sword 💖</h1>
+            <div class="player-stats">
+                <div class="stat">
+                    <span class="stat-label">Gold:</span>
+                    <span id="player-gold">100</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Energy:</span>
+                    <span id="player-energy">10/10</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Level:</span>
+                    <span id="player-level">1</span>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button class="control-btn" onclick="openSaveLoadModal()">💾 Save/Load</button>
+                <button class="control-btn" onclick="quickSave()">💾 Quick Save</button>
+            </div>
+        </header>
+
+        <nav class="game-nav">
+            <button class="nav-btn active" onclick="showSection('recruitment')">🏰 Recruitment</button>
+            <button class="nav-btn" onclick="showSection('party')">👥 Party</button>
+            <button class="nav-btn" onclick="showSection('dating')">💕 Dating</button>
+            <button class="nav-btn" onclick="showSection('dungeon')">⚔️ Dungeons</button>
+            <button class="nav-btn" onclick="showSection('inventory')">🎒 Inventory</button>
+        </nav>
+
+        <main class="game-main">
+            <!-- Recruitment Section -->
+            <section id="recruitment-section" class="game-section active">
+                <h2>Character Recruitment</h2>
+                <div class="location-selector">
+                    <label for="recruitment-location">Choose Location:</label>
+                    <select id="recruitment-location" onchange="updateRecruitmentPool()">
+                        <option value="tavern">🍺 Tavern</option>
+                        <option value="library">📚 Library</option>
+                        <option value="training-grounds">⚔️ Training Grounds</option>
+                        <option value="temple">⛪ Temple</option>
+                        <option value="forest">🌲 Forest</option>
+                        <option value="market">🏪 Market</option>
+                    </select>
+                </div>
+                <div id="recruitment-pool" class="character-grid">
+                    <!-- Characters will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Party Section -->
+            <section id="party-section" class="game-section">
+                <h2>Your Party</h2>
+                <div id="party-members" class="character-grid">
+                    <!-- Party members will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Dating Section -->
+            <section id="dating-section" class="game-section">
+                <h2>Dating Activities</h2>
+                <div class="dating-container">
+                    <div class="character-selector">
+                        <label for="dating-partner">Choose Partner:</label>
+                        <select id="dating-partner">
+                            <option value="">Select a party member</option>
+                        </select>
+                    </div>
+                    <div id="dating-activities" class="activity-grid">
+                        <!-- Dating activities will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Dungeon Section -->
+            <section id="dungeon-section" class="game-section">
+                <h2>Dungeon Exploration</h2>
+                <div class="dungeon-container">
+                    <div class="dungeon-selector">
+                        <label for="dungeon-choice">Choose Dungeon:</label>
+                        <select id="dungeon-choice">
+                            <option value="goblin-caves">🟢 Goblin Caves (Easy)</option>
+                            <option value="haunted-mansion">🟡 Haunted Mansion (Medium)</option>
+                            <option value="dragon-lair">🔴 Dragon's Lair (Hard)</option>
+                        </select>
+                    </div>
+                    <div class="party-formation">
+                        <h3>Party Formation</h3>
+                        <div id="dungeon-party" class="formation-grid">
+                            <!-- Party formation will be populated by JavaScript -->
+                        </div>
+                        <button onclick="startDungeon()" class="action-btn">Enter Dungeon</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory-section" class="game-section">
+                <h2>Inventory & Equipment</h2>
+                <div class="inventory-container">
+                    <div class="inventory-grid" id="inventory-grid">
+                        <!-- Inventory items will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for character details -->
+        <div id="character-modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <div id="character-details">
+                    <!-- Character details will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for battle -->
+        <div id="battle-modal" class="modal">
+            <div class="modal-content battle-content">
+                <h3>Battle!</h3>
+                <div id="battle-area">
+                    <!-- Battle interface will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Save/Load Modal -->
+        <div id="save-load-modal" class="modal">
+            <div class="modal-content save-load-content">
+                <span class="close" onclick="closeSaveLoadModal()">&times;</span>
+                <h3>Save & Load Game</h3>
+                
+                <div class="save-load-tabs">
+                    <button class="tab-btn active" onclick="showSaveLoadTab('save')">Save Game</button>
+                    <button class="tab-btn" onclick="showSaveLoadTab('load')">Load Game</button>
+                    <button class="tab-btn" onclick="showSaveLoadTab('manage')">Manage Saves</button>
+                </div>
+                
+                <!-- Save Tab -->
+                <div id="save-tab" class="save-load-tab active">
+                    <h4>Save to Slot:</h4>
+                    <div class="save-slots">
+                        <div class="save-slot" onclick="saveToSlot(1)">
+                            <div class="slot-number">Slot 1</div>
+                            <div class="slot-info" id="save-slot-1-info">Empty</div>
+                            <button class="save-btn">Save Here</button>
+                        </div>
+                        <div class="save-slot" onclick="saveToSlot(2)">
+                            <div class="slot-number">Slot 2</div>
+                            <div class="slot-info" id="save-slot-2-info">Empty</div>
+                            <button class="save-btn">Save Here</button>
+                        </div>
+                        <div class="save-slot" onclick="saveToSlot(3)">
+                            <div class="slot-number">Slot 3</div>
+                            <div class="slot-info" id="save-slot-3-info">Empty</div>
+                            <button class="save-btn">Save Here</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Load Tab -->
+                <div id="load-tab" class="save-load-tab">
+                    <h4>Load from Slot:</h4>
+                    <div class="save-slots">
+                        <div class="save-slot" onclick="loadFromSlot(1)">
+                            <div class="slot-number">Slot 1</div>
+                            <div class="slot-info" id="load-slot-1-info">Empty</div>
+                            <button class="load-btn" disabled>Load Game</button>
+                        </div>
+                        <div class="save-slot" onclick="loadFromSlot(2)">
+                            <div class="slot-number">Slot 2</div>
+                            <div class="slot-info" id="load-slot-2-info">Empty</div>
+                            <button class="load-btn" disabled>Load Game</button>
+                        </div>
+                        <div class="save-slot" onclick="loadFromSlot(3)">
+                            <div class="slot-number">Slot 3</div>
+                            <div class="slot-info" id="load-slot-3-info">Empty</div>
+                            <button class="load-btn" disabled>Load Game</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Manage Tab -->
+                <div id="manage-tab" class="save-load-tab">
+                    <h4>Manage Save Files:</h4>
+                    <div class="manage-options">
+                        <div class="manage-section">
+                            <h5>Settings</h5>
+                            <label>
+                                <input type="checkbox" id="auto-save-enabled" checked onchange="toggleAutoSave(this)">
+                                Auto-save enabled
+                            </label>
+                            <label>
+                                Auto-save interval:
+                                <select id="auto-save-interval" onchange="setAutoSaveInterval(this)">
+                                    <option value="15">15 seconds</option>
+                                    <option value="30" selected>30 seconds</option>
+                                    <option value="60">1 minute</option>
+                                    <option value="300">5 minutes</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="manage-section">
+                            <h5>Danger Zone</h5>
+                            <button class="danger-btn" onclick="resetGame()">Reset Game</button>
+                            <button class="danger-btn" onclick="clearAllSaves()">Clear All Saves</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-save indicator -->
+        <div id="auto-save-indicator" class="auto-save-indicator">
+            <span class="save-icon">💾</span>
+            <span class="save-text">Auto-saved</span>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
