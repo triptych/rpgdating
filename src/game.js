@@ -1,405 +1,65 @@
-// Game State
-let gameState = {
-    player: {
-        gold: 100,
-        energy: 10,
-        maxEnergy: 10,
-        level: 1,
-        experience: 0,
-        totalPlayTime: 0,
-        lastSaveTime: Date.now(),
-        food: 20
-    },
-    party: [],
-    inventory: [
-        { id: 1, name: 'Iron Sword', type: 'weapon', icon: '⚔️', effect: '+5 Attack', rarity: 'common', value: 50 },
-        { id: 2, name: 'Health Potion', type: 'consumable', icon: '🧪', effect: '+20 HP', rarity: 'common', value: 15 },
-        { id: 3, name: 'Leather Armor', type: 'armor', icon: '🛡️', effect: '+3 Defense', rarity: 'common', value: 30 }
-    ],
-    recruitmentPool: [],
-    currentLocation: 'tavern',
-    dungeonProgress: {},
-    passiveActivities: {}, // Track ongoing passive activities
-    gameProgress: {
-        dungeonsCompleted: {},
-        achievementsUnlocked: [],
-        totalDatesCompleted: 0,
-        totalDungeonsCleared: 0,
-        relationshipMilestones: {},
-        locationsVisited: ['tavern'],
-        totalGoldEarned: 0,
-        totalEnergySpent: 0
-    },
-    settings: {
-        autoSaveEnabled: true,
-        autoSaveInterval: 30,
-        soundEnabled: true,
-        musicEnabled: true,
-        animationsEnabled: true,
-        confirmationDialogs: true
-    },
-    lastActivity: 'game_start'
-};
+/**
+ * Main Game Module
+ * Refactored to use ES6 modules and the new character selector component
+ */
 
-// Character Classes and their base stats
-const characterClasses = {
-    warrior: { name: 'Warrior', icon: '⚔️', baseStats: { attack: 12, defense: 10, magic: 4, agility: 6, charisma: 6, intelligence: 5 } },
-    mage: { name: 'Mage', icon: '🔮', baseStats: { attack: 5, defense: 4, magic: 15, agility: 7, charisma: 8, intelligence: 12 } },
-    rogue: { name: 'Rogue', icon: '🗡️', baseStats: { attack: 10, defense: 6, magic: 5, agility: 14, charisma: 9, intelligence: 8 } },
-    cleric: { name: 'Cleric', icon: '✨', baseStats: { attack: 7, defense: 8, magic: 12, agility: 5, charisma: 12, intelligence: 9 } },
-    archer: { name: 'Archer', icon: '🏹', baseStats: { attack: 11, defense: 6, magic: 6, agility: 12, charisma: 7, intelligence: 7 } },
-    bard: { name: 'Bard', icon: '🎵', baseStats: { attack: 6, defense: 5, magic: 9, agility: 8, charisma: 15, intelligence: 10 } }
-};
+import { gameState, updateGameState, resetGameState } from './modules/game-state.js';
+import { 
+    characterClasses, 
+    locations, 
+    datingActivities, 
+    dungeonAreas, 
+    passiveActivities, 
+    storeItems, 
+    relationshipLevels, 
+    characterNames, 
+    personalityTypes, 
+    personalityCompatibility 
+} from './modules/game-data.js';
 
-// Recruitment locations and their character preferences
-const locations = {
-    tavern: { name: 'Tavern', classes: ['warrior', 'rogue', 'bard'] },
-    library: { name: 'Library', classes: ['mage', 'cleric'] },
-    'training-grounds': { name: 'Training Grounds', classes: ['warrior', 'archer'] },
-    temple: { name: 'Temple', classes: ['cleric', 'mage'] },
-    forest: { name: 'Forest', classes: ['archer', 'rogue'] },
-    market: { name: 'Market', classes: ['bard', 'rogue'] }
-};
-
-// Dating activities and their effects
-const datingActivities = [
-    { id: 'dinner', name: 'Fancy Dinner', icon: '🍽️', cost: 20, energyCost: 1, boosts: { charisma: 2, attack: 1 } },
-    { id: 'training', name: 'Sparring Practice', icon: '⚔️', cost: 10, energyCost: 2, boosts: { attack: 3, defense: 1 } },
-    { id: 'library', name: 'Study Together', icon: '📚', cost: 5, energyCost: 1, boosts: { intelligence: 3, magic: 2 } },
-    { id: 'adventure', name: 'Mini Adventure', icon: '🗺️', cost: 15, energyCost: 2, boosts: { agility: 2, attack: 1, charisma: 1 } },
-    { id: 'shopping', name: 'Shopping Spree', icon: '🛍️', cost: 25, energyCost: 1, boosts: { charisma: 2, intelligence: 1 } },
-    { id: 'picnic', name: 'Romantic Picnic', icon: '🧺', cost: 12, energyCost: 1, boosts: { charisma: 3, defense: 1 } }
-];
-
-// Dungeon Areas with specialized loot
-const dungeonAreas = {
-    'goblin-caves': {
-        name: 'Goblin Caves',
-        icon: '🟢',
-        difficulty: 1,
-        energyCost: 2,
-        enemies: ['Goblin Scout', 'Goblin Warrior'],
-        rewards: { gold: [15, 25], experience: [30, 50] },
-        lootSpecialty: 'gold',
-        lootTable: [
-            { name: 'Goblin Coin Pouch', type: 'treasure', icon: '💰', effect: '+50 Gold', rarity: 'common', value: 50, weight: 0.4 },
-            { name: 'Rusty Dagger', type: 'weapon', icon: '🗡️', effect: '+3 Attack', rarity: 'common', value: 25, weight: 0.3 },
-            { name: 'Tattered Cloak', type: 'armor', icon: '🧥', effect: '+2 Defense', rarity: 'common', value: 20, weight: 0.2 },
-            { name: 'Gold Nugget', type: 'treasure', icon: '✨', effect: '+100 Gold', rarity: 'uncommon', value: 100, weight: 0.1 }
-        ]
-    },
-    'ancient-armory': {
-        name: 'Ancient Armory',
-        icon: '⚔️',
-        difficulty: 2,
-        energyCost: 3,
-        enemies: ['Animated Sword', 'Guardian Construct'],
-        rewards: { gold: [25, 40], experience: [60, 90] },
-        lootSpecialty: 'weapons',
-        lootTable: [
-            { name: 'Steel Sword', type: 'weapon', icon: '⚔️', effect: '+8 Attack', rarity: 'common', value: 80, weight: 0.3 },
-            { name: 'Battle Axe', type: 'weapon', icon: '🪓', effect: '+10 Attack, -2 Agility', rarity: 'common', value: 90, weight: 0.25 },
-            { name: 'Enchanted Blade', type: 'weapon', icon: '✨', effect: '+12 Attack, +3 Magic', rarity: 'uncommon', value: 150, weight: 0.15 },
-            { name: 'Masterwork Bow', type: 'weapon', icon: '🏹', effect: '+9 Attack, +4 Agility', rarity: 'uncommon', value: 120, weight: 0.2 },
-            { name: 'Legendary Sword', type: 'weapon', icon: '🗡️', effect: '+15 Attack, +5 Charisma', rarity: 'rare', value: 300, weight: 0.1 }
-        ]
-    },
-    'crystal-caverns': {
-        name: 'Crystal Caverns',
-        icon: '💎',
-        difficulty: 2,
-        energyCost: 3,
-        enemies: ['Crystal Golem', 'Gem Spider'],
-        rewards: { gold: [30, 50], experience: [70, 100] },
-        lootSpecialty: 'magic',
-        lootTable: [
-            { name: 'Magic Crystal', type: 'consumable', icon: '💎', effect: '+5 Magic permanently', rarity: 'uncommon', value: 100, weight: 0.2 },
-            { name: 'Mana Potion', type: 'consumable', icon: '🧪', effect: '+30 MP', rarity: 'common', value: 25, weight: 0.3 },
-            { name: 'Crystal Staff', type: 'weapon', icon: '🔮', effect: '+6 Attack, +8 Magic', rarity: 'uncommon', value: 140, weight: 0.2 },
-            { name: 'Enchanted Robes', type: 'armor', icon: '👘', effect: '+3 Defense, +6 Magic', rarity: 'uncommon', value: 110, weight: 0.15 },
-            { name: 'Arcane Tome', type: 'consumable', icon: '📜', effect: '+3 Intelligence permanently', rarity: 'rare', value: 200, weight: 0.15 }
-        ]
-    },
-    'iron-fortress': {
-        name: 'Iron Fortress',
-        icon: '🛡️',
-        difficulty: 3,
-        energyCost: 4,
-        enemies: ['Iron Guardian', 'Fortress Knight'],
-        rewards: { gold: [40, 70], experience: [100, 150] },
-        lootSpecialty: 'armor',
-        lootTable: [
-            { name: 'Iron Armor', type: 'armor', icon: '🛡️', effect: '+8 Defense', rarity: 'common', value: 100, weight: 0.3 },
-            { name: 'Knight\'s Helm', type: 'armor', icon: '⛑️', effect: '+5 Defense, +2 Charisma', rarity: 'common', value: 80, weight: 0.25 },
-            { name: 'Fortress Shield', type: 'armor', icon: '🛡️', effect: '+12 Defense, +3 Attack', rarity: 'uncommon', value: 180, weight: 0.2 },
-            { name: 'Plate Mail', type: 'armor', icon: '🦾', effect: '+15 Defense, -3 Agility', rarity: 'uncommon', value: 200, weight: 0.15 },
-            { name: 'Legendary Armor', type: 'armor', icon: '✨', effect: '+20 Defense, +5 All Stats', rarity: 'rare', value: 500, weight: 0.1 }
-        ]
-    },
-    'shadow-realm': {
-        name: 'Shadow Realm',
-        icon: '🌑',
-        difficulty: 4,
-        energyCost: 5,
-        enemies: ['Shadow Wraith', 'Void Walker'],
-        rewards: { gold: [60, 100], experience: [150, 250] },
-        lootSpecialty: 'rare',
-        lootTable: [
-            { name: 'Shadow Essence', type: 'consumable', icon: '🌫️', effect: '+4 All Stats permanently', rarity: 'rare', value: 300, weight: 0.2 },
-            { name: 'Void Blade', type: 'weapon', icon: '⚫', effect: '+18 Attack, +8 Magic', rarity: 'rare', value: 400, weight: 0.15 },
-            { name: 'Cloak of Shadows', type: 'armor', icon: '🖤', effect: '+10 Defense, +12 Agility', rarity: 'rare', value: 350, weight: 0.15 },
-            { name: 'Dark Grimoire', type: 'consumable', icon: '📖', effect: '+8 Magic, +5 Intelligence permanently', rarity: 'epic', value: 600, weight: 0.1 },
-            { name: 'Ring of Power', type: 'accessory', icon: '💍', effect: '+10 All Stats', rarity: 'epic', value: 1000, weight: 0.05 }
-        ]
-    },
-    'treasure-vault': {
-        name: 'Ancient Treasure Vault',
-        icon: '💰',
-        difficulty: 3,
-        energyCost: 4,
-        enemies: ['Treasure Guardian', 'Mimic Chest'],
-        rewards: { gold: [80, 150], experience: [120, 180] },
-        lootSpecialty: 'gold',
-        lootTable: [
-            { name: 'Gold Bars', type: 'treasure', icon: '🟨', effect: '+200 Gold', rarity: 'uncommon', value: 200, weight: 0.3 },
-            { name: 'Jeweled Crown', type: 'treasure', icon: '👑', effect: '+500 Gold', rarity: 'rare', value: 500, weight: 0.15 },
-            { name: 'Ancient Coins', type: 'treasure', icon: '🪙', effect: '+100 Gold', rarity: 'common', value: 100, weight: 0.35 },
-            { name: 'Diamond Ring', type: 'accessory', icon: '💎', effect: '+5 Charisma, +3 All Stats', rarity: 'rare', value: 400, weight: 0.1 },
-            { name: 'Merchant\'s Blessing', type: 'consumable', icon: '✨', effect: 'Double gold from next 5 dungeons', rarity: 'epic', value: 300, weight: 0.1 }
-        ]
-    }
-};
-
-// Passive Activities for party members
-const passiveActivities = {
-    'mining': {
-        name: 'Mining',
-        icon: '⛏️',
-        description: 'Gather precious metals and gems',
-        duration: 3600000, // 1 hour in milliseconds
-        rewards: { gold: [10, 25], items: ['Iron Ore', 'Silver Nugget', 'Gem Fragment'] },
-        requiredStats: { attack: 5 },
-        energyCost: 0
-    },
-    'farming': {
-        name: 'Farming',
-        icon: '🌾',
-        description: 'Grow food and herbs',
-        duration: 7200000, // 2 hours
-        rewards: { food: [5, 15], items: ['Fresh Bread', 'Healing Herbs', 'Magic Berries'] },
-        requiredStats: { intelligence: 3 },
-        energyCost: 0
-    },
-    'crafting': {
-        name: 'Crafting',
-        icon: '🔨',
-        description: 'Create useful items and equipment',
-        duration: 5400000, // 1.5 hours
-        rewards: { gold: [15, 30], items: ['Crafted Potion', 'Simple Weapon', 'Basic Armor'] },
-        requiredStats: { intelligence: 7, attack: 3 },
-        energyCost: 0
-    },
-    'trading': {
-        name: 'Trading',
-        icon: '💼',
-        description: 'Buy and sell goods for profit',
-        duration: 1800000, // 30 minutes
-        rewards: { gold: [20, 40] },
-        requiredStats: { charisma: 8 },
-        energyCost: 0
-    },
-    'studying': {
-        name: 'Studying',
-        icon: '📚',
-        description: 'Research magic and gain knowledge',
-        duration: 4800000, // 80 minutes
-        rewards: { experience: [50, 100], items: ['Spell Scroll', 'Knowledge Tome'] },
-        requiredStats: { intelligence: 10 },
-        energyCost: 0
-    },
-    'guard-duty': {
-        name: 'Guard Duty',
-        icon: '🛡️',
-        description: 'Protect the town and earn steady income',
-        duration: 10800000, // 3 hours
-        rewards: { gold: [30, 50], experience: [30, 60] },
-        requiredStats: { defense: 8, attack: 6 },
-        energyCost: 0
-    }
-};
-
-// Store items for buying/selling
-const storeItems = {
-    weapons: [
-        { name: 'Iron Sword', type: 'weapon', icon: '⚔️', effect: '+5 Attack', rarity: 'common', buyPrice: 75, sellPrice: 50 },
-        { name: 'Steel Blade', type: 'weapon', icon: '🗡️', effect: '+8 Attack', rarity: 'common', buyPrice: 120, sellPrice: 80 },
-        { name: 'Magic Staff', type: 'weapon', icon: '🔮', effect: '+4 Attack, +6 Magic', rarity: 'uncommon', buyPrice: 200, sellPrice: 140 },
-        { name: 'War Hammer', type: 'weapon', icon: '🔨', effect: '+12 Attack, -2 Agility', rarity: 'uncommon', buyPrice: 180, sellPrice: 120 }
-    ],
-    armor: [
-        { name: 'Leather Armor', type: 'armor', icon: '🛡️', effect: '+3 Defense', rarity: 'common', buyPrice: 45, sellPrice: 30 },
-        { name: 'Chain Mail', type: 'armor', icon: '⛓️', effect: '+6 Defense', rarity: 'common', buyPrice: 90, sellPrice: 60 },
-        { name: 'Plate Armor', type: 'armor', icon: '🦾', effect: '+10 Defense, -1 Agility', rarity: 'uncommon', buyPrice: 150, sellPrice: 100 },
-        { name: 'Magic Robes', type: 'armor', icon: '👘', effect: '+4 Defense, +5 Magic', rarity: 'uncommon', buyPrice: 130, sellPrice: 90 }
-    ],
-    consumables: [
-        { name: 'Health Potion', type: 'consumable', icon: '🧪', effect: '+20 HP', rarity: 'common', buyPrice: 25, sellPrice: 15 },
-        { name: 'Mana Potion', type: 'consumable', icon: '💙', effect: '+15 MP', rarity: 'common', buyPrice: 20, sellPrice: 12 },
-        { name: 'Energy Drink', type: 'consumable', icon: '⚡', effect: '+2 Energy', rarity: 'common', buyPrice: 30, sellPrice: 20 },
-        { name: 'Stat Boost Elixir', type: 'consumable', icon: '✨', effect: '+2 Random Stat permanently', rarity: 'rare', buyPrice: 500, sellPrice: 300 }
-    ],
-    food: [
-        { name: 'Bread', type: 'food', icon: '🍞', effect: 'Restores 5 HP', rarity: 'common', buyPrice: 5, sellPrice: 2 },
-        { name: 'Cheese', type: 'food', icon: '🧀', effect: 'Restores 8 HP', rarity: 'common', buyPrice: 8, sellPrice: 4 },
-        { name: 'Cooked Meat', type: 'food', icon: '🍖', effect: 'Restores 15 HP', rarity: 'common', buyPrice: 15, sellPrice: 8 },
-        { name: 'Magic Fruit', type: 'food', icon: '🍎', effect: 'Restores 10 HP, +1 MP', rarity: 'uncommon', buyPrice: 25, sellPrice: 15 }
-    ]
-};
-
-// Relationship levels
-const relationshipLevels = [
-    { name: 'Stranger', minAffection: 0, statBonus: 0 },
-    { name: 'Acquaintance', minAffection: 10, statBonus: 1 },
-    { name: 'Friend', minAffection: 25, statBonus: 2 },
-    { name: 'Close Friend', minAffection: 50, statBonus: 3 },
-    { name: 'Romantic Interest', minAffection: 80, statBonus: 4 },
-    { name: 'Partner', minAffection: 120, statBonus: 5 },
-    { name: 'Soulmate', minAffection: 200, statBonus: 6 }
-];
-
-// Character name pools
-const characterNames = {
-    male: ['Aiden', 'Blake', 'Connor', 'Derek', 'Ethan', 'Felix', 'Gabriel', 'Hunter', 'Ivan', 'Jasper', 'Marcus', 'Kieran', 'Aldric', 'Gareth', 'Thomas', 'Galahad', 'Dante', 'Maximilian', 'Jasper', 'Thane'],
-    female: ['Aria', 'Bella', 'Clara', 'Diana', 'Emma', 'Fiona', 'Grace', 'Hazel', 'Iris', 'Luna', 'Elara', 'Zara', 'Raven', 'Sunny', 'Lydia', 'Isabella', 'Seraphina', 'Aurora', 'Willow', 'Victoria']
-};
-
-// Personality Types System
-const personalityTypes = {
-    'shy-bookworm': {
-        name: 'Shy Bookworm',
-        traits: ['introverted', 'studious', 'gentle', 'thoughtful'],
-        preferredActivities: ['library', 'picnic'],
-        dislikedActivities: ['shopping'],
-        compatibleWith: ['serious-scholar', 'gentle-healer', 'noble-protector'],
-        giftPreferences: { books: 8, art: 6, flowers: 6, jewelry: 2, weapons: 2, food: 4 },
-        backstoryTemplates: [
-            "Spent childhood in libraries, dreams of magical discoveries",
-            "Former apprentice to a renowned wizard, seeking knowledge",
-            "Raised by scholarly monks, curious about the outside world"
-        ],
-        quotes: [
-            "The answers we seek are often hidden in the pages we haven't read yet.",
-            "I may stumble over words, but my magic speaks clearly.",
-            "Books never judge you for asking too many questions."
-        ]
-    },
-    'bold-adventurer': {
-        name: 'Bold Adventurer',
-        traits: ['outgoing', 'risk-taker', 'confident', 'energetic'],
-        preferredActivities: ['adventure', 'training'],
-        dislikedActivities: ['library'],
-        compatibleWith: ['mischievous-trickster', 'free-spirit', 'ambitious-leader'],
-        giftPreferences: { weapons: 10, food: 6, art: 4, books: 2, flowers: 4, jewelry: 6 },
-        backstoryTemplates: [
-            "Former scout for a merchant caravan, traveled dangerous territories",
-            "Veteran of countless battles, seeks greater adventures",
-            "Explorer who thrives on challenge and excitement"
-        ],
-        quotes: [
-            "The horizon calls, and I must answer!",
-            "Danger is just adventure wearing a scary mask.",
-            "Life's too short for safe choices."
-        ]
-    },
-    'mysterious-loner': {
-        name: 'Mysterious Loner',
-        traits: ['enigmatic', 'independent', 'observant', 'complex'],
-        preferredActivities: ['adventure', 'library'],
-        dislikedActivities: ['shopping', 'dinner'],
-        compatibleWith: ['shy-bookworm', 'serious-scholar', 'noble-protector'],
-        giftPreferences: { art: 10, books: 6, weapons: 4, jewelry: 2, flowers: 3, food: 4 },
-        backstoryTemplates: [
-            "Former assassin who abandoned dark past but carries its secrets",
-            "Practitioner of forbidden magic, exiled and seeking redemption",
-            "Wanderer with a mysterious past, slow to trust but deeply loyal"
-        ],
-        quotes: [
-            "The shadows know all secrets, but they keep mine.",
-            "Trust is a luxury I can't afford... or can I?",
-            "Everyone has darkness within them; I've just made peace with mine."
-        ]
-    },
-    'cheerful-optimist': {
-        name: 'Cheerful Optimist',
-        traits: ['upbeat', 'supportive', 'encouraging', 'warm'],
-        preferredActivities: ['picnic', 'shopping', 'dinner'],
-        dislikedActivities: ['training'],
-        compatibleWith: ['gentle-healer', 'shy-bookworm', 'noble-protector'],
-        giftPreferences: { flowers: 10, food: 10, jewelry: 6, art: 4, books: 4, weapons: 2 },
-        backstoryTemplates: [
-            "Traveling performer who spreads joy through music and stories",
-            "Temple-raised healer who sees calling as spreading hope",
-            "Believes everyone has good in them, works to bring out the best"
-        ],
-        quotes: [
-            "Every day is a gift, that's why they call it the present!",
-            "A smile is the shortest distance between two hearts.",
-            "Even the darkest night will end and the sun will rise."
-        ]
-    },
-    'serious-scholar': {
-        name: 'Serious Scholar',
-        traits: ['intellectual', 'methodical', 'wise', 'analytical'],
-        preferredActivities: ['library', 'training'],
-        dislikedActivities: ['shopping', 'picnic'],
-        compatibleWith: ['shy-bookworm', 'mysterious-loner', 'ambitious-leader'],
-        giftPreferences: { books: 10, art: 6, weapons: 4, food: 4, flowers: 3, jewelry: 2 },
-        backstoryTemplates: [
-            "Former academy professor who left to conduct field research",
-            "Keeper of ancient religious texts, seeks deeper meanings",
-            "Brilliant researcher who struggles to connect emotionally"
-        ],
-        quotes: [
-            "Knowledge is power, but wisdom is knowing how to use it.",
-            "The universe reveals its secrets to those patient enough to listen.",
-            "Theory without practice is sterile; practice without theory is blind."
-        ]
-    },
-    'flirtatious-charmer': {
-        name: 'Flirtatious Charmer',
-        traits: ['charismatic', 'playful', 'confident', 'socially-adept'],
-        preferredActivities: ['dinner', 'shopping', 'picnic'],
-        dislikedActivities: ['library', 'training'],
-        compatibleWith: ['bold-adventurer', 'mischievous-trickster', 'ambitious-leader'],
-        giftPreferences: { jewelry: 10, flowers: 10, art: 6, food: 6, books: 3, weapons: 4 },
-        backstoryTemplates: [
-            "Court entertainer who mastered the art of charm and persuasion",
-            "Former con artist who now seeks to use social skills legitimately",
-            "Uses charm to navigate complex situations while hiding insecurities"
-        ],
-        quotes: [
-            "Charm opens doors that force cannot budge.",
-            "Beauty fades, but a captivating personality is eternal.",
-            "The heart wants what it wants, but the mind should guide the way."
-        ]
-    }
-};
-
-// Personality compatibility bonuses
-const personalityCompatibility = {
-    'shy-bookworm': { 'serious-scholar': 2, 'gentle-healer': 1, 'noble-protector': 1 },
-    'bold-adventurer': { 'mischievous-trickster': 2, 'free-spirit': 2, 'ambitious-leader': 1 },
-    'mysterious-loner': { 'serious-scholar': 1, 'shy-bookworm': 1, 'noble-protector': -1 },
-    'cheerful-optimist': { 'gentle-healer': 2, 'noble-protector': 1, 'shy-bookworm': 1 },
-    'serious-scholar': { 'shy-bookworm': 2, 'mysterious-loner': 1, 'ambitious-leader': 1 },
-    'flirtatious-charmer': { 'bold-adventurer': 1, 'mischievous-trickster': 1, 'ambitious-leader': 2 }
-};
+// Character selector components
+let recruitmentSelector, partySelector, datingSelector;
 
 // Initialize the game
 function initGame() {
+    setupCharacterSelectors();
     generateRecruitmentPool();
     updateUI();
     showSection('recruitment');
+}
+
+// Setup character selector components
+function setupCharacterSelectors() {
+    recruitmentSelector = document.getElementById('recruitment-character-selector');
+    partySelector = document.getElementById('party-character-selector');
+    datingSelector = document.getElementById('dating-character-selector');
+
+    // Setup event listeners for character selectors
+    if (recruitmentSelector) {
+        recruitmentSelector.onCharacterAction = (action, character) => {
+            if (action === 'recruit') {
+                recruitCharacter(character.id);
+            }
+        };
+        recruitmentSelector.onCharacterSelect = (character) => {
+            showCharacterDetails(character);
+        };
+    }
+
+    if (partySelector) {
+        partySelector.onCharacterSelect = (character) => {
+            showCharacterDetails(character);
+        };
+    }
+
+    if (datingSelector) {
+        datingSelector.addEventListener('character-selected', (e) => {
+            updateDatingActivities();
+        });
+        datingSelector.onCharacterSelect = (character) => {
+            showCharacterDetails(character);
+        };
+    }
 }
 
 // Generate random characters for recruitment
@@ -581,7 +241,9 @@ function showSection(sectionName) {
         'party': 1,
         'dating': 2,
         'dungeon': 3,
-        'inventory': 4
+        'store': 4,
+        'activities': 5,
+        'inventory': 6
     };
     
     if (sectionMap.hasOwnProperty(sectionName) && navButtons[sectionMap[sectionName]]) {
@@ -633,53 +295,19 @@ function updateRecruitmentPool() {
         generateRecruitmentPool();
     }
     
-    const poolContainer = document.getElementById('recruitment-pool');
-    poolContainer.innerHTML = '';
-    
-    gameState.recruitmentPool.forEach(character => {
-        const characterCard = createCharacterCard(character, true);
-        poolContainer.appendChild(characterCard);
-    });
+    if (recruitmentSelector) {
+        recruitmentSelector.setCharacters(gameState.recruitmentPool);
+    }
 }
 
-function createCharacterCard(character, isRecruitable = false) {
-    const card = document.createElement('div');
-    card.className = 'character-card';
-    card.onclick = () => showCharacterDetails(character);
-    
-    const relationship = getRelationshipLevel(character.affection);
-    
-    card.innerHTML = `
-        <div class="character-avatar">${character.icon}</div>
-        <div class="character-name">${character.name}</div>
-        <div class="character-class">${character.className}</div>
-        <div class="character-stats">
-            <div class="stat-item"><span>ATK:</span><span>${character.stats.attack}</span></div>
-            <div class="stat-item"><span>DEF:</span><span>${character.stats.defense}</span></div>
-            <div class="stat-item"><span>MAG:</span><span>${character.stats.magic}</span></div>
-            <div class="stat-item"><span>AGI:</span><span>${character.stats.agility}</span></div>
-            <div class="stat-item"><span>CHA:</span><span>${character.stats.charisma}</span></div>
-            <div class="stat-item"><span>INT:</span><span>${character.stats.intelligence}</span></div>
-        </div>
-        ${!isRecruitable ? `<div class="relationship-level">${relationship.name} (${character.affection})</div>` : ''}
-        ${isRecruitable ? 
-            `<button class="recruit-btn" onclick="recruitCharacter('${character.id}')" ${gameState.party.length >= 4 || gameState.player.gold < 50 ? 'disabled' : ''}>
-                Recruit (50 Gold)
-            </button>` : ''
-        }
-    `;
-    
-    return card;
-}
-
-function recruitCharacter(characterId) {
+async function recruitCharacter(characterId) {
     if (gameState.party.length >= 4) {
-        alert('Your party is full! (Maximum 4 members)');
+        await showAlert('Your party is full! (Maximum 4 members)', 'warning');
         return;
     }
     
     if (gameState.player.gold < 50) {
-        alert('Not enough gold to recruit this character!');
+        await showAlert('Not enough gold to recruit this character!', 'error');
         return;
     }
     
@@ -691,37 +319,23 @@ function recruitCharacter(characterId) {
         
         updateUI();
         updateRecruitmentPool();
+        updatePartyDisplay();
+        updateDatingSection();
         
-        alert(`${character.name} has joined your party!`);
+        await showAlert(`${character.name} has joined your party!`, 'success');
     }
 }
 
 function updatePartyDisplay() {
-    const partyContainer = document.getElementById('party-members');
-    partyContainer.innerHTML = '';
-    
-    if (gameState.party.length === 0) {
-        partyContainer.innerHTML = '<p>No party members yet. Visit the Recruitment section to find companions!</p>';
-        return;
+    if (partySelector) {
+        partySelector.setCharacters(gameState.party);
     }
-    
-    gameState.party.forEach(character => {
-        const characterCard = createCharacterCard(character, false);
-        partyContainer.appendChild(characterCard);
-    });
 }
 
 function updateDatingSection() {
-    const partnerSelect = document.getElementById('dating-partner');
-    partnerSelect.innerHTML = '<option value="">Select a party member</option>';
-    
-    gameState.party.forEach(character => {
-        const option = document.createElement('option');
-        option.value = character.id;
-        option.textContent = `${character.name} (${character.className})`;
-        partnerSelect.appendChild(option);
-    });
-    
+    if (datingSelector) {
+        datingSelector.setCharacters(gameState.party);
+    }
     updateDatingActivities();
 }
 
@@ -729,8 +343,8 @@ function updateDatingActivities() {
     const activitiesContainer = document.getElementById('dating-activities');
     activitiesContainer.innerHTML = '';
     
-    const selectedPartnerId = document.getElementById('dating-partner').value;
-    if (!selectedPartnerId) {
+    const selectedCharacterId = datingSelector ? datingSelector.getSelectedCharacter() : null;
+    if (!selectedCharacterId) {
         activitiesContainer.innerHTML = '<p>Select a party member to see available dating activities.</p>';
         return;
     }
@@ -738,7 +352,7 @@ function updateDatingActivities() {
     datingActivities.forEach(activity => {
         const activityCard = document.createElement('div');
         activityCard.className = 'activity-card';
-        activityCard.onclick = () => startDatingActivity(selectedPartnerId, activity.id);
+        activityCard.onclick = () => startDatingActivity(selectedCharacterId, activity.id);
         
         const boostText = Object.entries(activity.boosts)
             .map(([stat, boost]) => `+${boost} ${stat.toUpperCase()}`)
@@ -760,19 +374,19 @@ function updateDatingActivities() {
     });
 }
 
-function startDatingActivity(partnerId, activityId) {
+async function startDatingActivity(partnerId, activityId) {
     const partner = gameState.party.find(c => c.id == partnerId);
     const activity = datingActivities.find(a => a.id === activityId);
     
     if (!partner || !activity) return;
     
     if (gameState.player.gold < activity.cost) {
-        alert('Not enough gold for this activity!');
+        await showAlert('Not enough gold for this activity!', 'error');
         return;
     }
     
     if (gameState.player.energy < activity.energyCost) {
-        alert('Not enough energy for this activity!');
+        await showAlert('Not enough energy for this activity!', 'error');
         return;
     }
     
@@ -791,8 +405,9 @@ function startDatingActivity(partnerId, activityId) {
     
     updateUI();
     updateDatingActivities();
+    updatePartyDisplay(); // Update to show new affection levels
     
-    alert(`${partner.name} enjoyed the ${activity.name}! Affection increased by ${affectionGain}.`);
+    await showAlert(`${partner.name} enjoyed the ${activity.name}! Affection increased by ${affectionGain}.`, 'success');
 }
 
 function updateDungeonSection() {
@@ -826,9 +441,9 @@ function updateDungeonSection() {
     }
 }
 
-function startDungeon() {
+async function startDungeon() {
     if (gameState.party.length === 0) {
-        alert('You need at least one party member to enter a dungeon!');
+        await showAlert('You need at least one party member to enter a dungeon!', 'warning');
         return;
     }
     
@@ -836,12 +451,12 @@ function startDungeon() {
     const dungeon = dungeonAreas[dungeonType];
     
     if (!dungeon) {
-        alert('Invalid dungeon selected!');
+        await showAlert('Invalid dungeon selected!', 'error');
         return;
     }
     
     if (gameState.player.energy < dungeon.energyCost) {
-        alert(`You need at least ${dungeon.energyCost} energy to enter this dungeon!`);
+        await showAlert(`You need at least ${dungeon.energyCost} energy to enter this dungeon!`, 'warning');
         return;
     }
     
@@ -849,7 +464,7 @@ function startDungeon() {
     gameState.player.energy -= dungeon.energyCost;
     updateUI();
     
-    // Start battle simulation with new system
+    // Start battle simulation
     simulateNewDungeonBattle(dungeonType);
 }
 
@@ -864,7 +479,7 @@ function simulateNewDungeonBattle(dungeonType) {
         partyStrength += character.stats.attack + character.stats.defense + character.stats.magic + bonus * 3;
     });
     
-    const requiredStrength = dungeon.difficulty * 30; // Adjusted for new system
+    const requiredStrength = dungeon.difficulty * 30;
     const success = partyStrength >= requiredStrength * 0.7; // 70% threshold for success
     
     let rewards = {
@@ -903,7 +518,7 @@ function simulateNewDungeonBattle(dungeonType) {
         gameState.gameProgress.totalDungeonsCleared++;
     }
     
-    // Show battle modal with new system
+    // Show battle modal
     showNewBattleResult(dungeon, success, partyStrength, requiredStrength, rewards, lootFound);
 }
 
@@ -981,95 +596,6 @@ function showNewBattleResult(dungeon, success, partyStrength, requiredStrength, 
     modal.style.display = 'block';
 }
 
-// Legacy function for compatibility
-function simulateDungeonBattle(dungeonType) {
-    // Redirect to new system if dungeon exists in new areas
-    if (dungeonAreas[dungeonType]) {
-        simulateNewDungeonBattle(dungeonType);
-        return;
-    }
-    
-    // Fallback to old system for legacy dungeons
-    const dungeons = {
-        'haunted-mansion': { name: 'Haunted Mansion', difficulty: 2, enemies: ['Ghost', 'Skeleton'], rewards: { gold: 60, experience: 100 } },
-        'dragon-lair': { name: "Dragon's Lair", difficulty: 3, enemies: ['Dragon Minion', 'Young Dragon'], rewards: { gold: 120, experience: 200 } }
-    };
-    
-    const dungeon = dungeons[dungeonType];
-    if (!dungeon) return;
-    
-    // Calculate party strength
-    let partyStrength = 0;
-    gameState.party.forEach(character => {
-        const relationship = getRelationshipLevel(character.affection);
-        const bonus = relationship.statBonus;
-        partyStrength += character.stats.attack + character.stats.defense + character.stats.magic + bonus * 3;
-    });
-    
-    const requiredStrength = dungeon.difficulty * 40;
-    const success = partyStrength >= requiredStrength * 0.8;
-    
-    // Show battle modal
-    showBattleResult(dungeon, success, partyStrength, requiredStrength);
-}
-
-function showBattleResult(dungeon, success, partyStrength, requiredStrength) {
-    const modal = document.getElementById('battle-modal');
-    const battleArea = document.getElementById('battle-area');
-    
-    if (success) {
-        gameState.player.gold += dungeon.rewards.gold;
-        gameState.party.forEach(character => {
-            character.level += Math.floor(dungeon.rewards.experience / 100);
-        });
-        
-        battleArea.innerHTML = `
-            <h3>Victory!</h3>
-            <p>Your party successfully conquered the ${dungeon.name}!</p>
-            <div class="battle-participants">
-                <div class="battle-party">
-                    <h4>Your Party (Strength: ${partyStrength})</h4>
-                    ${gameState.party.map(c => `<div>${c.icon} ${c.name}</div>`).join('')}
-                </div>
-                <div class="battle-enemies">
-                    <h4>Enemies Defeated</h4>
-                    ${dungeon.enemies.map(e => `<div>💀 ${e}</div>`).join('')}
-                </div>
-            </div>
-            <div class="battle-log">
-                <div>🎉 Victory achieved!</div>
-                <div>💰 +${dungeon.rewards.gold} Gold</div>
-                <div>⭐ +${dungeon.rewards.experience} Experience</div>
-                <div>📈 Party members leveled up!</div>
-            </div>
-            <button class="battle-btn" onclick="closeBattleModal()">Continue</button>
-        `;
-    } else {
-        battleArea.innerHTML = `
-            <h3>Defeat...</h3>
-            <p>Your party was not strong enough for the ${dungeon.name}.</p>
-            <div class="battle-participants">
-                <div class="battle-party">
-                    <h4>Your Party (Strength: ${partyStrength})</h4>
-                    ${gameState.party.map(c => `<div>${c.icon} ${c.name}</div>`).join('')}
-                </div>
-                <div class="battle-enemies">
-                    <h4>Enemies (Required: ${requiredStrength})</h4>
-                    ${dungeon.enemies.map(e => `<div>💀 ${e}</div>`).join('')}
-                </div>
-            </div>
-            <div class="battle-log">
-                <div>💔 Your party was defeated...</div>
-                <div>💡 Try dating your party members to boost their stats!</div>
-                <div>📈 Stronger relationships = Better combat performance</div>
-            </div>
-            <button class="battle-btn" onclick="closeBattleModal()">Retreat</button>
-        `;
-    }
-    
-    modal.style.display = 'block';
-}
-
 function closeBattleModal() {
     document.getElementById('battle-modal').style.display = 'none';
     updateUI();
@@ -1085,19 +611,187 @@ function updateInventoryDisplay() {
         return;
     }
     
-    gameState.inventory.forEach(item => {
+    gameState.inventory.forEach((item, index) => {
         const itemCard = document.createElement('div');
         itemCard.className = 'item-card';
+        
+        // Check if item is equippable
+        const isEquippable = item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory';
         
         itemCard.innerHTML = `
             <div class="item-icon">${item.icon}</div>
             <div class="item-name">${item.name}</div>
             <div class="item-type">${item.type}</div>
             <div class="item-effect">${item.effect}</div>
+            ${isEquippable ? `<button class="equip-btn" onclick="showEquipModal(${index})">Equip</button>` : ''}
         `;
         
         inventoryGrid.appendChild(itemCard);
     });
+}
+
+// Equipment System Functions
+function showEquipModal(itemIndex) {
+    const item = gameState.inventory[itemIndex];
+    
+    if (!item || (item.type !== 'weapon' && item.type !== 'armor' && item.type !== 'accessory')) {
+        showAlert('This item cannot be equipped!', 'error');
+        return;
+    }
+    
+    // Show modal with party members who can equip this item
+    const availableCharacters = [...gameState.party];
+    
+    // Add player as an option
+    const playerCharacter = {
+        id: 'player',
+        name: 'Player',
+        icon: '👤',
+        className: 'Player',
+        equipment: gameState.player.equipment || {}
+    };
+    availableCharacters.unshift(playerCharacter);
+    
+    const characterList = availableCharacters.map(char => {
+        const currentEquipped = char.equipment && char.equipment[item.type];
+        const currentEquippedText = currentEquipped ? 
+            `<div style="font-size: 0.8rem; color: #e74c3c;">Currently: ${currentEquipped.name}</div>` : 
+            `<div style="font-size: 0.8rem; color: #7f8c8d;">No ${item.type} equipped</div>`;
+        
+        return `<div class="assignment-option" onclick="equipItemToCharacter(${itemIndex}, '${char.id}')">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.5rem;">${char.icon}</span>
+                <div>
+                    <div style="font-weight: bold;">${char.name} (${char.className})</div>
+                    ${currentEquippedText}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="document.body.removeChild(this.closest('.modal'))">&times;</span>
+            <h3>Equip ${item.name}</h3>
+            <div style="text-align: center; margin: 1rem 0;">
+                <div style="font-size: 2rem;">${item.icon}</div>
+                <div style="font-weight: bold;">${item.name}</div>
+                <div style="color: #7f8c8d;">${item.type}</div>
+                <div style="color: #27ae60; margin: 0.5rem 0;">${item.effect}</div>
+            </div>
+            <div class="character-selection">
+                <h4>Select Character:</h4>
+                ${characterList}
+            </div>
+            <button onclick="document.body.removeChild(this.closest('.modal'))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+async function equipItemToCharacter(itemIndex, characterId) {
+    const item = gameState.inventory[itemIndex];
+    
+    if (!item) return;
+    
+    let character;
+    if (characterId === 'player') {
+        character = gameState.player;
+        if (!character.equipment) character.equipment = {};
+    } else {
+        character = gameState.party.find(c => c.id == characterId);
+        if (!character) return;
+        if (!character.equipment) character.equipment = {};
+    }
+    
+    // Check if character already has an item of this type equipped
+    const currentEquipped = character.equipment[item.type];
+    
+    // Unequip current item if exists
+    if (currentEquipped) {
+        gameState.inventory.push({
+            id: Date.now() + Math.random(),
+            ...currentEquipped
+        });
+    }
+    
+    // Equip new item
+    character.equipment[item.type] = { ...item };
+    
+    // Remove item from inventory
+    gameState.inventory.splice(itemIndex, 1);
+    
+    // Close modal
+    const modal = document.querySelector('.modal');
+    if (modal && modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+    }
+    
+    // Update displays
+    updateInventoryDisplay();
+    updatePartyDisplay();
+    
+    const characterName = characterId === 'player' ? 'Player' : character.name;
+    await showAlert(`${item.name} equipped to ${characterName}!`, 'success');
+}
+
+function unequipItem(characterId, itemType) {
+    let character;
+    if (characterId === 'player') {
+        character = gameState.player;
+    } else {
+        character = gameState.party.find(c => c.id == characterId);
+    }
+    
+    if (!character || !character.equipment || !character.equipment[itemType]) {
+        return;
+    }
+    
+    const item = character.equipment[itemType];
+    
+    // Add item back to inventory
+    gameState.inventory.push({
+        id: Date.now() + Math.random(),
+        ...item
+    });
+    
+    // Remove from equipment
+    delete character.equipment[itemType];
+    
+    updateInventoryDisplay();
+    updatePartyDisplay();
+    
+    const characterName = characterId === 'player' ? 'Player' : character.name;
+    showAlert(`${item.name} unequipped from ${characterName}!`, 'success');
+}
+
+// Calculate total stats including equipment bonuses
+function calculateTotalStats(character) {
+    const baseStats = { ...character.stats };
+    const equipment = character.equipment || {};
+    
+    // Apply equipment bonuses
+    Object.values(equipment).forEach(item => {
+        if (item.effect) {
+            // Parse effect string to extract stat bonuses
+            const effectMatch = item.effect.match(/\+(\d+)\s+(\w+)/g);
+            if (effectMatch) {
+                effectMatch.forEach(match => {
+                    const [, bonus, stat] = match.match(/\+(\d+)\s+(\w+)/);
+                    const statName = stat.toLowerCase();
+                    if (baseStats[statName] !== undefined) {
+                        baseStats[statName] += parseInt(bonus);
+                    }
+                });
+            }
+        }
+    });
+    
+    return baseStats;
 }
 
 function showCharacterDetails(character) {
@@ -1307,9 +1001,9 @@ function showStoreCategory(category) {
     });
 }
 
-function buyItem(item) {
+async function buyItem(item) {
     if (gameState.player.gold < item.buyPrice) {
-        alert('Not enough gold to buy this item!');
+        await showAlert('Not enough gold to buy this item!', 'error');
         return;
     }
     
@@ -1325,7 +1019,7 @@ function buyItem(item) {
     });
     
     updateUI();
-    alert(`Purchased ${item.name} for ${item.buyPrice} gold!`);
+    await showAlert(`Purchased ${item.name} for ${item.buyPrice} gold!`, 'success');
 }
 
 function updateSellItems() {
@@ -1356,17 +1050,18 @@ function updateSellItems() {
     });
 }
 
-function sellItem(itemIndex) {
+async function sellItem(itemIndex) {
     const item = gameState.inventory[itemIndex];
     const sellPrice = item.value || Math.floor((item.buyPrice || 50) * 0.6);
     
-    if (confirm(`Sell ${item.name} for ${sellPrice} gold?`)) {
+    const confirmed = await showConfirm(`Sell ${item.name} for ${sellPrice} gold?`);
+    if (confirmed) {
         gameState.player.gold += sellPrice;
         gameState.inventory.splice(itemIndex, 1);
         
         updateUI();
         updateSellItems();
-        alert(`Sold ${item.name} for ${sellPrice} gold!`);
+        await showAlert(`Sold ${item.name} for ${sellPrice} gold!`, 'success');
     }
 }
 
@@ -1411,7 +1106,7 @@ function updateAvailableActivities() {
     });
 }
 
-function showAssignmentModal(activityId) {
+async function showAssignmentModal(activityId) {
     const activity = passiveActivities[activityId];
     const availableCharacters = gameState.party.filter(character => {
         // Check if character meets requirements
@@ -1426,34 +1121,63 @@ function showAssignmentModal(activityId) {
     });
     
     if (availableCharacters.length === 0) {
-        alert('No available characters meet the requirements for this activity!');
+        await showAlert('No available characters meet the requirements for this activity!', 'warning');
         return;
     }
     
-    const characterList = availableCharacters.map(char => 
-        `<div class="assignment-option" onclick="assignCharacterToActivity('${char.id}', '${activityId}')">
-            ${char.icon} ${char.name} (${char.className})
-        </div>`
-    ).join('');
+    // Create character selection with detailed stats
+    const characterList = availableCharacters.map(char => {
+        const meetsReqs = Object.entries(activity.requiredStats).map(([stat, required]) => {
+            const current = char.stats[stat];
+            const meets = current >= required;
+            return `<span style="color: ${meets ? '#27ae60' : '#e74c3c'}">${stat}: ${current}/${required}</span>`;
+        }).join(', ');
+        
+        return `<div class="assignment-option" onclick="assignCharacterToActivity('${char.id}', '${activityId}')">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.5rem;">${char.icon}</span>
+                <div>
+                    <div style="font-weight: bold;">${char.name} (${char.className})</div>
+                    <div style="font-size: 0.8rem; color: #7f8c8d;">${meetsReqs}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
     
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'block';
     modal.innerHTML = `
         <div class="modal-content">
+            <span class="close" onclick="document.body.removeChild(this.closest('.modal'))">&times;</span>
             <h3>Assign Character to ${activity.name}</h3>
             <p>${activity.description}</p>
+            <div style="margin: 1rem 0;">
+                <strong>Requirements:</strong> ${Object.entries(activity.requiredStats).map(([stat, req]) => `${stat} ${req}+`).join(', ')}
+            </div>
+            <div style="margin: 1rem 0;">
+                <strong>Duration:</strong> ${Math.floor(activity.duration / 60000)} minutes
+            </div>
+            <div style="margin: 1rem 0;">
+                <strong>Rewards:</strong> ${Object.entries(activity.rewards).map(([type, range]) => {
+                    if (Array.isArray(range)) {
+                        return `${range[0]}-${range[1]} ${type}`;
+                    }
+                    return `${range.join(', ')} ${type}`;
+                }).join(', ')}
+            </div>
             <div class="character-selection">
+                <h4>Select Character:</h4>
                 ${characterList}
             </div>
-            <button onclick="document.body.removeChild(this.closest('.modal'))">Cancel</button>
+            <button onclick="document.body.removeChild(this.closest('.modal'))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
         </div>
     `;
     
     document.body.appendChild(modal);
 }
 
-function assignCharacterToActivity(characterId, activityId) {
+async function assignCharacterToActivity(characterId, activityId) {
     const character = gameState.party.find(c => c.id == characterId);
     const activity = passiveActivities[activityId];
     
@@ -1476,7 +1200,7 @@ function assignCharacterToActivity(characterId, activityId) {
     updateActiveAssignments();
     updateAvailableActivities();
     
-    alert(`${character.name} has been assigned to ${activity.name}!`);
+    await showAlert(`${character.name} has been assigned to ${activity.name}!`, 'success');
 }
 
 function updateActiveAssignments() {
@@ -1524,7 +1248,7 @@ function updateActiveAssignments() {
     });
 }
 
-function collectRewards(assignmentId) {
+async function collectRewards(assignmentId) {
     const assignment = gameState.passiveActivities[assignmentId];
     const activity = passiveActivities[assignment.activityId];
     const character = gameState.party.find(c => c.id == assignment.characterId);
@@ -1572,28 +1296,199 @@ function collectRewards(assignmentId) {
     updateActiveAssignments();
     updateAvailableActivities();
     
-    alert(`${character.name} completed ${activity.name}! Rewards: ${rewardText.join(', ')}`);
+    await showAlert(`${character.name} completed ${activity.name}! Rewards: ${rewardText.join(', ')}`, 'success');
 }
 
-function cancelAssignment(assignmentId) {
-    if (confirm('Are you sure you want to cancel this assignment?')) {
+async function cancelAssignment(assignmentId) {
+    const confirmed = await showConfirm('Are you sure you want to cancel this assignment?');
+    if (confirmed) {
         delete gameState.passiveActivities[assignmentId];
         updateActiveAssignments();
         updateAvailableActivities();
     }
 }
 
-// Event listener for dating partner selection
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('dating-partner').addEventListener('change', updateDatingActivities);
-});
+// Spontaneous Character Messages System
+function generateSpontaneousMessage(character) {
+    const relationship = getRelationshipLevel(character.affection);
+    const personality = personalityTypes[character.personalityType];
+    
+    if (!personality) return null;
+    
+    // Base messages by relationship level
+    const messagesByLevel = {
+        'Stranger': [
+            `${character.name} glances at you briefly before looking away.`,
+            `${character.name} nods politely in your direction.`,
+            `${character.name} seems focused on their own tasks.`
+        ],
+        'Acquaintance': [
+            `${character.name} gives you a small wave when they see you.`,
+            `${character.name} mentions they've been thinking about your last conversation.`,
+            `${character.name} asks how your day is going.`
+        ],
+        'Friend': [
+            `${character.name} lights up when they see you approaching.`,
+            `${character.name} shares a funny story from their day.`,
+            `${character.name} suggests you should spend more time together.`
+        ],
+        'Close Friend': [
+            `${character.name} rushes over to tell you about something exciting that happened.`,
+            `${character.name} says they really value your friendship.`,
+            `${character.name} asks if you want to grab a meal together later.`
+        ],
+        'Romantic Interest': [
+            `${character.name} blushes slightly when they see you.`,
+            `${character.name} mentions they've been looking forward to seeing you.`,
+            `${character.name} compliments something about you today.`
+        ],
+        'Partner': [
+            `${character.name} gives you an affectionate smile and takes your hand.`,
+            `${character.name} tells you how much you mean to them.`,
+            `${character.name} suggests planning something special together.`
+        ],
+        'Soulmate': [
+            `${character.name} looks at you with pure adoration in their eyes.`,
+            `${character.name} says they can't imagine life without you.`,
+            `${character.name} whispers sweet words of love to you.`
+        ]
+    };
+    
+    // Personality-specific message modifiers
+    const personalityMessages = {
+        'shy-bookworm': {
+            'Stranger': [`${character.name} peeks at you from behind a book.`],
+            'Friend': [`${character.name} shyly offers to share an interesting book with you.`],
+            'Romantic Interest': [`${character.name} nervously fidgets with their book while talking to you.`]
+        },
+        'bold-adventurer': {
+            'Acquaintance': [`${character.name} excitedly tells you about their latest adventure.`],
+            'Friend': [`${character.name} invites you to join them on their next quest.`],
+            'Partner': [`${character.name} says you're the perfect adventure companion.`]
+        },
+        'mysterious-loner': {
+            'Stranger': [`${character.name} watches you from the shadows.`],
+            'Friend': [`${character.name} reveals a small secret about their past.`],
+            'Romantic Interest': [`${character.name} says you're the only one who truly understands them.`]
+        },
+        'cheerful-optimist': {
+            'Acquaintance': [`${character.name} brightens everyone's day with their smile.`],
+            'Friend': [`${character.name} says you always make them feel better.`],
+            'Partner': [`${character.name} tells you that you're their sunshine.`]
+        },
+        'serious-scholar': {
+            'Friend': [`${character.name} shares an interesting fact they learned recently.`],
+            'Romantic Interest': [`${character.name} says your intelligence is very attractive.`],
+            'Partner': [`${character.name} discusses future plans with scholarly precision.`]
+        },
+        'flirtatious-charmer': {
+            'Acquaintance': [`${character.name} gives you a playful wink.`],
+            'Romantic Interest': [`${character.name} flirts with you more seriously than usual.`],
+            'Partner': [`${character.name} whispers something that makes you blush.`]
+        }
+    };
+    
+    // Goal and fear-based messages (occasional)
+    const goalFearMessages = [];
+    if (Math.random() < 0.3) { // 30% chance for goal/fear messages
+        if (character.goals) {
+            goalFearMessages.push(`${character.name} mentions their dream: "${character.goals}"`);
+        }
+        if (character.fears && relationship.name !== 'Stranger') {
+            goalFearMessages.push(`${character.name} quietly confides their fear: "${character.fears}"`);
+        }
+    }
+    
+    // Combine all possible messages
+    let possibleMessages = [...(messagesByLevel[relationship.name] || [])];
+    
+    // Add personality-specific messages
+    if (personalityMessages[character.personalityType] && personalityMessages[character.personalityType][relationship.name]) {
+        possibleMessages.push(...personalityMessages[character.personalityType][relationship.name]);
+    }
+    
+    // Add goal/fear messages
+    possibleMessages.push(...goalFearMessages);
+    
+    // Return random message
+    if (possibleMessages.length > 0) {
+        return possibleMessages[Math.floor(Math.random() * possibleMessages.length)];
+    }
+    
+    return null;
+}
 
-// Energy regeneration (every 30 seconds in real-time)
+function showSpontaneousMessage(character, message) {
+    // Create a small notification that appears and fades
+    const notification = document.createElement('div');
+    notification.className = 'spontaneous-message';
+    notification.innerHTML = `
+        <div class="message-character">${character.icon} ${character.name}</div>
+        <div class="message-text">${message}</div>
+    `;
+    
+    // Style the notification
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 2px solid #3498db;
+        border-radius: 10px;
+        padding: 1rem;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateY(0)';
+        notification.style.opacity = '1';
+    }, 100);
+    
+    // Remove after delay
+    setTimeout(() => {
+        notification.style.transform = 'translateY(100px)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
+}
+
+// Spontaneous message system - triggers randomly
+function triggerSpontaneousMessages() {
+    if (gameState.party.length === 0) return;
+    
+    // Random chance for a message (5% per check)
+    if (Math.random() < 0.05) {
+        const randomCharacter = gameState.party[Math.floor(Math.random() * gameState.party.length)];
+        const message = generateSpontaneousMessage(randomCharacter);
+        
+        if (message) {
+            showSpontaneousMessage(randomCharacter, message);
+        }
+    }
+}
+
+// Energy regeneration and spontaneous messages (every 30 seconds in real-time)
 setInterval(() => {
     if (gameState.player.energy < gameState.player.maxEnergy) {
         gameState.player.energy = Math.min(gameState.player.maxEnergy, gameState.player.energy + 1);
         updateUI();
     }
+    
+    // Trigger spontaneous messages
+    triggerSpontaneousMessages();
 }, 30000);
 
 // Save System Core Functions
@@ -1989,48 +1884,10 @@ function setAutoSaveInterval(select) {
     saveSystem.startAutoSave(); // Restart with new interval
 }
 
-function resetGame() {
-    if (confirm('Are you sure you want to reset the game? This will delete all progress!')) {
-        // Reset game state to initial values
-        gameState = {
-            player: {
-                gold: 100,
-                energy: 10,
-                maxEnergy: 10,
-                level: 1,
-                experience: 0,
-                totalPlayTime: 0,
-                lastSaveTime: Date.now()
-            },
-            party: [],
-            inventory: [
-                { id: 1, name: 'Iron Sword', type: 'weapon', icon: '⚔️', effect: '+5 Attack', rarity: 'common', value: 50 },
-                { id: 2, name: 'Health Potion', type: 'consumable', icon: '🧪', effect: '+20 HP', rarity: 'common', value: 15 },
-                { id: 3, name: 'Leather Armor', type: 'armor', icon: '🛡️', effect: '+3 Defense', rarity: 'common', value: 30 }
-            ],
-            recruitmentPool: [],
-            currentLocation: 'tavern',
-            dungeonProgress: {},
-            gameProgress: {
-                dungeonsCompleted: {},
-                achievementsUnlocked: [],
-                totalDatesCompleted: 0,
-                totalDungeonsCleared: 0,
-                relationshipMilestones: {},
-                locationsVisited: ['tavern'],
-                totalGoldEarned: 0,
-                totalEnergySpent: 0
-            },
-            settings: {
-                autoSaveEnabled: true,
-                autoSaveInterval: 30,
-                soundEnabled: true,
-                musicEnabled: true,
-                animationsEnabled: true,
-                confirmationDialogs: true
-            },
-            lastActivity: 'game_start'
-        };
+async function resetGame() {
+    const confirmed = await showConfirm('Are you sure you want to reset the game? This will delete all progress!');
+    if (confirmed) {
+        resetGameState();
         
         // Regenerate recruitment pool and update UI
         generateRecruitmentPool();
@@ -2042,8 +1899,9 @@ function resetGame() {
     }
 }
 
-function clearAllSaves() {
-    if (confirm('Are you sure you want to delete all save files? This cannot be undone!')) {
+async function clearAllSaves() {
+    const confirmed = await showConfirm('Are you sure you want to delete all save files? This cannot be undone!');
+    if (confirmed) {
         for (let i = 1; i <= 3; i++) {
             saveSystem.deleteSaveSlot(i);
         }
@@ -2051,6 +1909,156 @@ function clearAllSaves() {
         saveSystem.showSaveNotification('All save files deleted');
     }
 }
+
+// Custom Dialog System
+class CustomDialog {
+    constructor() {
+        this.dialog = document.getElementById('custom-dialog');
+        this.title = document.getElementById('dialog-title');
+        this.icon = document.getElementById('dialog-icon');
+        this.message = document.getElementById('dialog-message');
+        this.confirmBtn = document.getElementById('dialog-confirm');
+        this.cancelBtn = document.getElementById('dialog-cancel');
+        this.currentResolve = null;
+        this.currentReject = null;
+    }
+
+    show(options = {}) {
+        return new Promise((resolve, reject) => {
+            this.currentResolve = resolve;
+            this.currentReject = reject;
+
+            // Set dialog content
+            this.title.textContent = options.title || 'Notification';
+            this.message.textContent = options.message || '';
+            
+            // Set icon based on type
+            const iconMap = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️',
+                question: '❓'
+            };
+            this.icon.textContent = iconMap[options.type] || 'ℹ️';
+            
+            // Apply type-specific styling
+            this.dialog.className = `custom-dialog ${options.type ? 'dialog-' + options.type : ''}`;
+            
+            // Configure buttons
+            this.confirmBtn.textContent = options.confirmText || 'OK';
+            
+            if (options.showCancel) {
+                this.cancelBtn.style.display = 'inline-block';
+                this.cancelBtn.textContent = options.cancelText || 'Cancel';
+            } else {
+                this.cancelBtn.style.display = 'none';
+            }
+            
+            // Show dialog with animation
+            this.dialog.classList.add('show');
+            
+            // Focus on confirm button
+            setTimeout(() => {
+                this.confirmBtn.focus();
+            }, 100);
+        });
+    }
+
+    hide() {
+        this.dialog.classList.remove('show');
+    }
+
+    confirm() {
+        this.hide();
+        if (this.currentResolve) {
+            this.currentResolve(true);
+            this.currentResolve = null;
+        }
+    }
+
+    cancel() {
+        this.hide();
+        if (this.currentResolve) {
+            this.currentResolve(false);
+            this.currentResolve = null;
+        }
+    }
+}
+
+// Initialize dialog system
+const customDialog = new CustomDialog();
+
+// Dialog helper functions
+function showAlert(message, type = 'info', title = null) {
+    return customDialog.show({
+        title: title || (type === 'error' ? 'Error' : type === 'success' ? 'Success' : type === 'warning' ? 'Warning' : 'Notification'),
+        message: message,
+        type: type,
+        showCancel: false
+    });
+}
+
+function showConfirm(message, title = 'Confirm') {
+    return customDialog.show({
+        title: title,
+        message: message,
+        type: 'question',
+        showCancel: true,
+        confirmText: 'Yes',
+        cancelText: 'No'
+    });
+}
+
+// Dialog control functions
+function confirmCustomDialog() {
+    customDialog.confirm();
+}
+
+function closeCustomDialog() {
+    customDialog.cancel();
+}
+
+// Keyboard support for dialog
+document.addEventListener('keydown', function(e) {
+    if (customDialog.dialog.classList.contains('show')) {
+        if (e.key === 'Escape') {
+            customDialog.cancel();
+        } else if (e.key === 'Enter') {
+            customDialog.confirm();
+        }
+    }
+});
+
+// Make functions globally available
+window.showSection = showSection;
+window.updateRecruitmentPool = updateRecruitmentPool;
+window.startDungeon = startDungeon;
+window.closeBattleModal = closeBattleModal;
+window.closeModal = closeModal;
+window.showProfileTab = showProfileTab;
+window.showStoreTab = showStoreTab;
+window.showStoreCategory = showStoreCategory;
+window.showAssignmentModal = showAssignmentModal;
+window.assignCharacterToActivity = assignCharacterToActivity;
+window.collectRewards = collectRewards;
+window.cancelAssignment = cancelAssignment;
+window.openSaveLoadModal = openSaveLoadModal;
+window.closeSaveLoadModal = closeSaveLoadModal;
+window.showSaveLoadTab = showSaveLoadTab;
+window.saveToSlot = saveToSlot;
+window.loadFromSlot = loadFromSlot;
+window.quickSave = quickSave;
+window.toggleAutoSave = toggleAutoSave;
+window.setAutoSaveInterval = setAutoSaveInterval;
+window.resetGame = resetGame;
+window.clearAllSaves = clearAllSaves;
+window.confirmCustomDialog = confirmCustomDialog;
+window.closeCustomDialog = closeCustomDialog;
+window.saveSystem = saveSystem;
+window.showEquipModal = showEquipModal;
+window.equipItemToCharacter = equipItemToCharacter;
+window.unequipItem = unequipItem;
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', function() {

@@ -55,29 +55,32 @@
                         <option value="market">🏪 Market</option>
                     </select>
                 </div>
-                <div id="recruitment-pool" class="character-grid">
-                    <!-- Characters will be populated by JavaScript -->
-                </div>
+                <character-selector 
+                    id="recruitment-character-selector" 
+                    mode="recruit" 
+                    title="Available Characters">
+                </character-selector>
             </section>
 
             <!-- Party Section -->
             <section id="party-section" class="game-section">
                 <h2>Your Party</h2>
-                <div id="party-members" class="character-grid">
-                    <!-- Party members will be populated by JavaScript -->
-                </div>
+                <character-selector 
+                    id="party-character-selector" 
+                    mode="display" 
+                    title="Party Members">
+                </character-selector>
             </section>
 
             <!-- Dating Section -->
             <section id="dating-section" class="game-section">
                 <h2>Dating Activities</h2>
                 <div class="dating-container">
-                    <div class="character-selector">
-                        <label for="dating-partner">Choose Partner:</label>
-                        <select id="dating-partner">
-                            <option value="">Select a party member</option>
-                        </select>
-                    </div>
+                    <character-selector 
+                        id="dating-character-selector" 
+                        mode="select" 
+                        title="Choose Dating Partner">
+                    </character-selector>
                     <div id="dating-activities" class="activity-grid">
                         <!-- Dating activities will be populated by JavaScript -->
                     </div>
@@ -288,8 +291,30 @@
             <span class="save-icon">💾</span>
             <span class="save-text">Auto-saved</span>
         </div>
+
+        <!-- Custom Dialog Component -->
+        <div id="custom-dialog" class="custom-dialog">
+            <div class="dialog-backdrop"></div>
+            <div class="dialog-container">
+                <div class="dialog-content">
+                    <div class="dialog-header">
+                        <h3 id="dialog-title">Notification</h3>
+                        <button class="dialog-close" onclick="closeCustomDialog()">&times;</button>
+                    </div>
+                    <div class="dialog-body">
+                        <div id="dialog-icon" class="dialog-icon">ℹ️</div>
+                        <div id="dialog-message" class="dialog-message">Message goes here</div>
+                    </div>
+                    <div class="dialog-footer">
+                        <button id="dialog-confirm" class="dialog-btn dialog-btn-primary" onclick="confirmCustomDialog()">OK</button>
+                        <button id="dialog-cancel" class="dialog-btn dialog-btn-secondary" onclick="closeCustomDialog()" style="display: none;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="game.js"></script>
+    <script type="module" src="components/character-selector.js"></script>
+    <script type="module" src="game.js"></script>
 </body>
 </html>
