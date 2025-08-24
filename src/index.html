@@ -173,8 +173,29 @@
             <section id="inventory-section" class="game-section">
                 <h2>Inventory & Equipment</h2>
                 <div class="inventory-container">
-                    <div class="inventory-grid" id="inventory-grid">
-                        <!-- Inventory items will be populated by JavaScript -->
+                    <div class="inventory-tabs">
+                        <button class="inventory-tab-btn active" onclick="showInventoryTab('equipment')">⚔️ Equipment</button>
+                        <button class="inventory-tab-btn" onclick="showInventoryTab('items')">🎒 Items</button>
+                    </div>
+                    
+                    <!-- Equipment Tab -->
+                    <div id="equipment-tab" class="inventory-tab-content active">
+                        <div class="equipment-overview">
+                            <h3>Party Equipment</h3>
+                            <div id="party-equipment-grid" class="party-equipment-grid">
+                                <!-- Party member equipment will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Items Tab -->
+                    <div id="items-tab" class="inventory-tab-content">
+                        <div class="items-overview">
+                            <h3>Inventory Items</h3>
+                            <div class="inventory-grid" id="inventory-grid">
+                                <!-- Inventory items will be populated by JavaScript -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

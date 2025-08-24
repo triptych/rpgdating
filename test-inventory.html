@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart & Sword - RPG Dating Adventure</title>
+    <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>⚔️ Heart & Sword 💖</h1>
+            <div class="player-stats">
+                <div class="stat">
+                    <span class="stat-label">Gold:</span>
+                    <span id="player-gold">100</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Energy:</span>
+                    <span id="player-energy">10/10</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Level:</span>
+                    <span id="player-level">1</span>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button class="control-btn" onclick="openSaveLoadModal()">💾 Save/Load</button>
+                <button class="control-btn" onclick="quickSave()">💾 Quick Save</button>
+            </div>
+        </header>
+
+        <nav class="game-nav">
+            <button class="nav-btn active" onclick="showSection('recruitment')">🏰 Recruitment</button>
+            <button class="nav-btn" onclick="showSection('party')">👥 Party</button>
+            <button class="nav-btn" onclick="showSection('dating')">💕 Dating</button>
+            <button class="nav-btn" onclick="showSection('dungeon')">⚔️ Dungeons</button>
+            <button class="nav-btn" onclick="showSection('store')">🏪 Store</button>
+            <button class="nav-btn" onclick="showSection('activities')">⚒️ Activities</button>
+            <button class="nav-btn" onclick="showSection('inventory')">🎒 Inventory</button>
+        </nav>
+
+        <main class="game-main">
+            <!-- Recruitment Section -->
+            <section id="recruitment-section" class="game-section active">
+                <h2>Character Recruitment</h2>
+                <div class="location-selector">
+                    <label for="recruitment-location">Choose Location:</label>
+                    <select id="recruitment-location" onchange="updateRecruitmentPool()">
+                        <option value="tavern">🍺 Tavern</option>
+                        <option value="library">📚 Library</option>
+                        <option value="training-grounds">⚔️ Training Grounds</option>
+                        <option value="temple">⛪ Temple</option>
+                        <option value="forest">🌲 Forest</option>
+                        <option value="market">🏪 Market</option>
+                    </select>
+                </div>
+                <div id="recruitment-characters" class="character-grid">
+                    <!-- Characters will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Party Section -->
+            <section id="party-section" class="game-section">
+                <h2>Your Party</h2>
+                <div id="party-characters" class="character-grid">
+                    <!-- Party members will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory-section" class="game-section">
+                <h2>Inventory & Equipment</h2>
+                <div class="inventory-container">
+                    <div class="inventory-tabs">
+                        <button class="inventory-tab-btn active" onclick="showInventoryTab('equipment')">⚔️ Equipment</button>
+                        <button class="inventory-tab-btn" onclick="showInventoryTab('items')">🎒 Items</button>
+                    </div>
+                    
+                    <!-- Equipment Tab -->
+                    <div id="equipment-tab" class="inventory-tab-content active">
+                        <div class="equipment-overview">
+                            <h3>Party Equipment</h3>
+                            <div id="party-equipment-grid" class="party-equipment-grid">
+                                <!-- Party member equipment will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Items Tab -->
+                    <div id="items-tab" class="inventory-tab-content">
+                        <div class="items-overview">
+                            <h3>Inventory Items</h3>
+                            <div class="inventory-grid" id="inventory-grid">
+                                <!-- Inventory items will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Simplified game state for testing
+        let gameState = {
+            player: {
+                gold: 100,
+                energy: 10,
+                maxEnergy: 10,
+                level: 1,
+                equipment: {
+                    weapon: { name: 'Iron Sword', type: 'weapon', icon: '⚔️', effect: '+5 Attack', rarity: 'common' }
+                }
+            },
+            party: [
+                {
+                    id: 1,
+                    name: 'Alice',
+                    className: 'Warrior',
+                    icon: '⚔️',
+                    level: 2,
+                    equipment: {
+                        armor: { name: 'Leather Armor', type: 'armor', icon: '🛡️', effect: '+3 Defense', rarity: 'common' }
+                    }
+                },
+                {
+                    id: 2,
+                    name: 'Bob',
+                    className: 'Mage',
+                    icon: '🔮',
+                    level: 1,
+                    equipment: {
+                        weapon: { name: 'Magic Staff', type: 'weapon', icon: '🔮', effect: '+4 Attack, +6 Magic', rarity: 'uncommon' },
+                        accessory: { name: 'Magic Ring', type: 'accessory', icon: '💍', effect: '+2 All Stats', rarity: 'rare' }
+                    }
+                }
+            ],
+            inventory: [
+                { id: 1, name: 'Steel Sword', type: 'weapon', icon: '⚔️', effect: '+8 Attack', rarity: 'common' },
+                { id: 2, name: 'Health Potion', type: 'consumable', icon: '🧪', effect: '+20 HP', rarity: 'common' },
+                { id: 3, name: 'Chain Mail', type: 'armor', icon: '⛓️', effect: '+6 Defense', rarity: 'common' }
+            ]
+        };
+
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.game-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(`${sectionName}-section`).classList.add('active');
+            
+            // Add active class to corresponding nav button
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const sectionMap = {
+                'recruitment': 0,
+                'party': 1,
+                'dating': 2,
+                'dungeon': 3,
+                'store': 4,
+                'activities': 5,
+                'inventory': 6
+            };
+            
+            if (sectionMap.hasOwnProperty(sectionName) && navButtons[sectionMap[sectionName]]) {
+                navButtons[sectionMap[sectionName]].classList.add('active');
+            }
+            
+            // Update section content
+            if (sectionName === 'inventory') {
+                updateInventoryDisplay();
+            } else if (sectionName === 'party') {
+                updatePartyDisplay();
+            }
+        }
+
+        function showInventoryTab(tabName) {
+            // Hide all inventory tabs
+            document.querySelectorAll('.inventory-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.inventory-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Update content based on selected tab
+            if (tabName === 'equipment') {
+                updatePartyEquipmentTab();
+            } else if (tabName === 'items') {
+                updateInventoryItemsTab();
+            }
+        }
+
+        function updateInventoryDisplay() {
+            updateInventoryItemsTab();
+            updatePartyEquipmentTab();
+        }
+
+        function updateInventoryItemsTab() {
+            const inventoryGrid = document.getElementById('inventory-grid');
+            inventoryGrid.innerHTML = '';
+            
+            if (gameState.inventory.length === 0) {
+                inventoryGrid.innerHTML = '<p>Your inventory is empty.</p>';
+                return;
+            }
+            
+            gameState.inventory.forEach((item, index) => {
+                const itemCard = document.createElement('div');
+                itemCard.className = 'item-card';
+                
+                const isEquippable = item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory';
+                
+                itemCard.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-type">${item.type}</div>
+                    <div class="item-effect">${item.effect}</div>
+                    ${isEquippable ? `<button class="equip-btn" onclick="showEquipModal(${index})">Equip</button>` : ''}
+                `;
+                
+                inventoryGrid.appendChild(itemCard);
+            });
+        }
+
+        function updatePartyEquipmentTab() {
+            const partyEquipmentGrid = document.getElementById('party-equipment-grid');
+            partyEquipmentGrid.innerHTML = '';
+            
+            const allCharacters = [];
+            
+            const playerCharacter = {
+                id: 'player',
+                name: 'Player',
+                icon: '👤',
+                className: 'Player',
+                level: gameState.player.level,
+                equipment: gameState.player.equipment || {}
+            };
+            allCharacters.push(playerCharacter);
+            allCharacters.push(...gameState.party);
+            
+            allCharacters.forEach(character => {
+                const characterCard = document.createElement('div');
+                characterCard.className = 'character-equipment-card';
+                
+                const equipment = character.equipment || {};
+                const equipmentSlots = ['weapon', 'armor', 'accessory'];
+                
+                const slotsHTML = equipmentSlots.map(slotType => {
+                    const equippedItem = equipment[slotType];
+                    
+                    if (equippedItem) {
+                        return `
+                            <div class="equipment-slot filled" onclick="showEquippedItemDetails('${character.id}', '${slotType}')">
+                                <div class="equipment-slot-type">${slotType}</div>
+                                <div class="equipment-item-icon">${equippedItem.icon}</div>
+                                <div class="equipment-item-name">${equippedItem.name}</div>
+                                <div class="equipment-item-effect">${equippedItem.effect}</div>
+                                <button class="unequip-btn" onclick="event.stopPropagation(); unequipItem('${character.id}', '${slotType}')" title="Unequip">×</button>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="equipment-slot">
+                                <div class="equipment-slot-type">${slotType}</div>
+                                <div class="empty-equipment-text">No ${slotType} equipped</div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+                
+                characterCard.innerHTML = `
+                    <div class="character-equipment-header">
+                        <div class="character-equipment-avatar">${character.icon}</div>
+                        <div class="character-equipment-info">
+                            <h4>${character.name}</h4>
+                            <div class="character-class">${character.className}</div>
+                            <div class="character-level">Level ${character.level}</div>
+                        </div>
+                    </div>
+                    <div class="equipment-slots">
+                        ${slotsHTML}
+                    </div>
+                `;
+                
+                partyEquipmentGrid.appendChild(characterCard);
+            });
+        }
+
+        function updatePartyDisplay() {
+            const partyGrid = document.getElementById('party-characters');
+            partyGrid.innerHTML = '';
+            
+            if (gameState.party.length === 0) {
+                partyGrid.innerHTML = '<p>No party members recruited yet.</p>';
+                return;
+            }
+            
+            gameState.party.forEach(character => {
+                const characterCard = document.createElement('div');
+                characterCard.className = 'character-card';
+                
+                characterCard.innerHTML = `
+                    <div class="character-avatar">${character.icon}</div>
+                    <div class="character-name">${character.name}</div>
+                    <div class="character-class">${character.className}</div>
+                    <div class="character-level">Level ${character.level}</div>
+                `;
+                
+                partyGrid.appendChild(characterCard);
+            });
+        }
+
+        function unequipItem(characterId, itemType) {
+            let character;
+            if (characterId === 'player') {
+                character = gameState.player;
+            } else {
+                character = gameState.party.find(c => c.id == characterId);
+            }
+            
+            if (!character || !character.equipment || !character.equipment[itemType]) {
+                return;
+            }
+            
+            const item = character.equipment[itemType];
+            
+            // Add item back to inventory
+            gameState.inventory.push({
+                id: Date.now() + Math.random(),
+                ...item
+            });
+            
+            // Remove from equipment
+            delete character.equipment[itemType];
+            
+            updateInventoryDisplay();
+            
+            const characterName = characterId === 'player' ? 'Player' : character.name;
+            alert(`${item.name} unequipped from ${characterName}!`);
+        }
+
+        function showEquippedItemDetails(characterId, slotType) {
+            let character;
+            if (characterId === 'player') {
+                character = gameState.player;
+            } else {
+                character = gameState.party.find(c => c.id == characterId);
+            }
+            
+            if (!character || !character.equipment || !character.equipment[slotType]) {
+                return;
+            }
+            
+            const item = character.equipment[slotType];
+            const characterName = characterId === 'player' ? 'Player' : character.name;
+            
+            alert(`${item.name} (${item.type})\n${item.effect}\nEquipped by: ${characterName}\n\nClick the × button to unequip this item.`);
+        }
+
+        function showEquipModal(itemIndex) {
+            const item = gameState.inventory[itemIndex];
+            
+            if (!item || (item.type !== 'weapon' && item.type !== 'armor' && item.type !== 'accessory')) {
+                alert('This item cannot be equipped!');
+                return;
+            }
+            
+            const availableCharacters = [...gameState.party];
+            const playerCharacter = {
+                id: 'player',
+                name: 'Player',
+                icon: '👤',
+                className: 'Player',
+                equipment: gameState.player.equipment || {}
+            };
+            availableCharacters.unshift(playerCharacter);
+            
+            let characterOptions = availableCharacters.map((char, index) => {
+                const currentEquipped = char.equipment && char.equipment[item.type];
+                const currentText = currentEquipped ? ` (Currently: ${currentEquipped.name})` : ` (No ${item.type} equipped)`;
+                return `${index}: ${char.name}${currentText}`;
+            }).join('\n');
+            
+            const choice = prompt(`Equip ${item.name} to which character?\n\n${characterOptions}\n\nEnter the number:`);
+            
+            if (choice !== null && !isNaN(choice) && choice >= 0 && choice < availableCharacters.length) {
+                equipItemToCharacter(itemIndex, availableCharacters[parseInt(choice)].id);
+            }
+        }
+
+        function equipItemToCharacter(itemIndex, characterId) {
+            const item = gameState.inventory[itemIndex];
+            
+            if (!item) return;
+            
+            let character;
+            if (characterId === 'player') {
+                character = gameState.player;
+                if (!character.equipment) character.equipment = {};
+            } else {
+                character = gameState.party.find(c => c.id == characterId);
+                if (!character) return;
+                if (!character.equipment) character.equipment = {};
+            }
+            
+            // Check if character already has an item of this type equipped
+            const currentEquipped = character.equipment[item.type];
+            
+            // Unequip current item if exists
+            if (currentEquipped) {
+                gameState.inventory.push({
+                    id: Date.now() + Math.random(),
+                    ...currentEquipped
+                });
+            }
+            
+            // Equip new item
+            character.equipment[item.type] = { ...item };
+            
+            // Remove item from inventory
+            gameState.inventory.splice(itemIndex, 1);
+            
+            updateInventoryDisplay();
+            
+            const characterName = characterId === 'player' ? 'Player' : character.name;
+            alert(`${item.name} equipped to ${characterName}!`);
+        }
+
+        // Dummy functions for other buttons
+        function updateRecruitmentPool() {}
+        function openSaveLoadModal() { alert('Save/Load functionality not implemented in test version'); }
+        function quickSave() { alert('Quick Save functionality not implemented in test version'); }
+
+        // Initialize the display
+        document.addEventListener('DOMContentLoaded', function() {
+            updateInventoryDisplay();
+            updatePartyDisplay();
+        });
+    </script>
+</body>
+</html>

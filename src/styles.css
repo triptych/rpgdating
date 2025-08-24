@@ -1462,3 +1462,241 @@ body {
     line-height: 1.4;
     font-size: 0.9rem;
 }
+
+/* Enhanced Inventory Styles */
+.inventory-tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #34495e;
+}
+
+.inventory-tab-btn {
+    flex: 1;
+    padding: 1rem;
+    background: #7f8c8d;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-size: 1rem;
+}
+
+.inventory-tab-btn.active {
+    background: #3498db;
+}
+
+.inventory-tab-btn:hover {
+    background: #2980b9;
+}
+
+.inventory-tab-content {
+    display: none;
+}
+
+.inventory-tab-content.active {
+    display: block;
+}
+
+.party-equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.character-equipment-card {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+}
+
+.character-equipment-card:hover {
+    border-color: #3498db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.character-equipment-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.character-equipment-avatar {
+    font-size: 2.5rem;
+}
+
+.character-equipment-info h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.character-equipment-info .character-class {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+.character-equipment-info .character-level {
+    color: #3498db;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.equipment-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.equipment-slot {
+    background: white;
+    border: 2px dashed #bdc3c7;
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-align: center;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.equipment-slot.filled {
+    border: 2px solid #27ae60;
+    background: #d5f4e6;
+    cursor: pointer;
+}
+
+.equipment-slot.filled:hover {
+    border-color: #229954;
+    background: #c8e6c9;
+    transform: translateY(-2px);
+}
+
+.equipment-slot-type {
+    font-size: 0.7rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.equipment-slot.filled .equipment-slot-type {
+    color: #27ae60;
+}
+
+.equipment-item-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.equipment-item-name {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.equipment-item-effect {
+    font-size: 0.7rem;
+    color: #27ae60;
+    line-height: 1.1;
+}
+
+.unequip-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.equipment-slot.filled:hover .unequip-btn {
+    opacity: 1;
+}
+
+.unequip-btn:hover {
+    background: #c0392b;
+}
+
+.empty-equipment-text {
+    color: #95a5a6;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.no-party-message {
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #bdc3c7;
+}
+
+.equipment-overview h3, .items-overview h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+/* Enhanced Item Cards for Equipment Tab */
+.equipment-tab .item-card {
+    position: relative;
+}
+
+.equipment-tab .item-card .equip-btn {
+    margin-top: 0.5rem;
+}
+
+/* Responsive Equipment Grid */
+@media (max-width: 768px) {
+    .party-equipment-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .equipment-slots {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .character-equipment-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .equipment-slots {
+        grid-template-columns: 1fr;
+    }
+    
+    .inventory-tabs {
+        flex-direction: column;
+    }
+    
+    .inventory-tab-btn {
+        padding: 0.75rem;
+    }
+}

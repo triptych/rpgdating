@@ -603,6 +603,37 @@ function closeBattleModal() {
 }
 
 function updateInventoryDisplay() {
+    // Update both tabs when inventory section is shown
+    updateInventoryItemsTab();
+    updatePartyEquipmentTab();
+}
+
+function showInventoryTab(tabName) {
+    // Hide all inventory tabs
+    document.querySelectorAll('.inventory-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.inventory-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+    
+    // Update content based on selected tab
+    if (tabName === 'equipment') {
+        updatePartyEquipmentTab();
+    } else if (tabName === 'items') {
+        updateInventoryItemsTab();
+    }
+}
+
+function updateInventoryItemsTab() {
     const inventoryGrid = document.getElementById('inventory-grid');
     inventoryGrid.innerHTML = '';
     
@@ -628,6 +659,126 @@ function updateInventoryDisplay() {
         
         inventoryGrid.appendChild(itemCard);
     });
+}
+
+function updatePartyEquipmentTab() {
+    const partyEquipmentGrid = document.getElementById('party-equipment-grid');
+    partyEquipmentGrid.innerHTML = '';
+    
+    // Create array of all characters including player
+    const allCharacters = [];
+    
+    // Add player character
+    const playerCharacter = {
+        id: 'player',
+        name: 'Player',
+        icon: '👤',
+        className: 'Player',
+        level: gameState.player.level,
+        equipment: gameState.player.equipment || {}
+    };
+    allCharacters.push(playerCharacter);
+    
+    // Add party members
+    allCharacters.push(...gameState.party);
+    
+    if (allCharacters.length === 1) {
+        partyEquipmentGrid.innerHTML = '<div class="no-party-message">Recruit party members to see their equipment!</div>';
+        return;
+    }
+    
+    allCharacters.forEach(character => {
+        const characterCard = document.createElement('div');
+        characterCard.className = 'character-equipment-card';
+        
+        const equipment = character.equipment || {};
+        const equipmentSlots = ['weapon', 'armor', 'accessory'];
+        
+        const slotsHTML = equipmentSlots.map(slotType => {
+            const equippedItem = equipment[slotType];
+            
+            if (equippedItem) {
+                return `
+                    <div class="equipment-slot filled" onclick="showEquippedItemDetails('${character.id}', '${slotType}')">
+                        <div class="equipment-slot-type">${slotType}</div>
+                        <div class="equipment-item-icon">${equippedItem.icon}</div>
+                        <div class="equipment-item-name">${equippedItem.name}</div>
+                        <div class="equipment-item-effect">${equippedItem.effect}</div>
+                        <button class="unequip-btn" onclick="event.stopPropagation(); unequipItem('${character.id}', '${slotType}')" title="Unequip">×</button>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="equipment-slot">
+                        <div class="equipment-slot-type">${slotType}</div>
+                        <div class="empty-equipment-text">No ${slotType} equipped</div>
+                    </div>
+                `;
+            }
+        }).join('');
+        
+        characterCard.innerHTML = `
+            <div class="character-equipment-header">
+                <div class="character-equipment-avatar">${character.icon}</div>
+                <div class="character-equipment-info">
+                    <h4>${character.name}</h4>
+                    <div class="character-class">${character.className}</div>
+                    <div class="character-level">Level ${character.level}</div>
+                </div>
+            </div>
+            <div class="equipment-slots">
+                ${slotsHTML}
+            </div>
+        `;
+        
+        partyEquipmentGrid.appendChild(characterCard);
+    });
+}
+
+function showEquippedItemDetails(characterId, slotType) {
+    let character;
+    if (characterId === 'player') {
+        character = gameState.player;
+    } else {
+        character = gameState.party.find(c => c.id == characterId);
+    }
+    
+    if (!character || !character.equipment || !character.equipment[slotType]) {
+        return;
+    }
+    
+    const item = character.equipment[slotType];
+    const characterName = characterId === 'player' ? 'Player' : character.name;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="document.body.removeChild(this.closest('.modal'))">&times;</span>
+            <h3>Equipped Item Details</h3>
+            <div style="text-align: center; margin: 1rem 0;">
+                <div style="font-size: 3rem;">${item.icon}</div>
+                <div style="font-weight: bold; font-size: 1.2rem; margin: 0.5rem 0;">${item.name}</div>
+                <div style="color: #7f8c8d; margin: 0.25rem 0;">Type: ${item.type}</div>
+                <div style="color: #27ae60; background: #d5f4e6; padding: 0.5rem; border-radius: 6px; margin: 0.5rem 0;">${item.effect}</div>
+                <div style="color: #3498db; margin: 0.5rem 0;">Equipped by: ${characterName}</div>
+                ${item.rarity ? `<div class="item-rarity ${item.rarity}" style="position: static; margin: 0.5rem 0; display: inline-block;">${item.rarity}</div>` : ''}
+            </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <button onclick="unequipItem('${characterId}', '${slotType}'); document.body.removeChild(this.closest('.modal'))" 
+                        style="background: #e74c3c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; margin-right: 0.5rem;">
+                    Unequip Item
+                </button>
+                <button onclick="document.body.removeChild(this.closest('.modal'))" 
+                        style="background: #95a5a6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer;">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 // Equipment System Functions
@@ -2059,6 +2210,8 @@ window.saveSystem = saveSystem;
 window.showEquipModal = showEquipModal;
 window.equipItemToCharacter = equipItemToCharacter;
 window.unequipItem = unequipItem;
+window.showInventoryTab = showInventoryTab;
+window.showEquippedItemDetails = showEquippedItemDetails;
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', function() {
