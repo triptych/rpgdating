@@ -35,6 +35,8 @@
             <button class="nav-btn" onclick="showSection('party')">👥 Party</button>
             <button class="nav-btn" onclick="showSection('dating')">💕 Dating</button>
             <button class="nav-btn" onclick="showSection('dungeon')">⚔️ Dungeons</button>
+            <button class="nav-btn" onclick="showSection('store')">🏪 Store</button>
+            <button class="nav-btn" onclick="showSection('activities')">⚒️ Activities</button>
             <button class="nav-btn" onclick="showSection('inventory')">🎒 Inventory</button>
         </nav>
 
@@ -89,9 +91,12 @@
                     <div class="dungeon-selector">
                         <label for="dungeon-choice">Choose Dungeon:</label>
                         <select id="dungeon-choice">
-                            <option value="goblin-caves">🟢 Goblin Caves (Easy)</option>
-                            <option value="haunted-mansion">🟡 Haunted Mansion (Medium)</option>
-                            <option value="dragon-lair">🔴 Dragon's Lair (Hard)</option>
+                            <option value="goblin-caves">🟢 Goblin Caves (Easy) - Gold Specialty</option>
+                            <option value="ancient-armory">⚔️ Ancient Armory (Medium) - Weapons</option>
+                            <option value="crystal-caverns">💎 Crystal Caverns (Medium) - Magic Items</option>
+                            <option value="iron-fortress">🛡️ Iron Fortress (Hard) - Armor</option>
+                            <option value="treasure-vault">💰 Treasure Vault (Hard) - Gold & Gems</option>
+                            <option value="shadow-realm">🌑 Shadow Realm (Very Hard) - Rare Items</option>
                         </select>
                     </div>
                     <div class="party-formation">
@@ -100,6 +105,63 @@
                             <!-- Party formation will be populated by JavaScript -->
                         </div>
                         <button onclick="startDungeon()" class="action-btn">Enter Dungeon</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Store Section -->
+            <section id="store-section" class="game-section">
+                <h2>Merchant's Store</h2>
+                <div class="store-container">
+                    <div class="store-tabs">
+                        <button class="store-tab-btn active" onclick="showStoreTab('buy')">Buy Items</button>
+                        <button class="store-tab-btn" onclick="showStoreTab('sell')">Sell Items</button>
+                    </div>
+                    
+                    <div id="buy-tab" class="store-tab-content active">
+                        <div class="store-categories">
+                            <button class="category-btn active" onclick="showStoreCategory('weapons')">⚔️ Weapons</button>
+                            <button class="category-btn" onclick="showStoreCategory('armor')">🛡️ Armor</button>
+                            <button class="category-btn" onclick="showStoreCategory('consumables')">🧪 Consumables</button>
+                            <button class="category-btn" onclick="showStoreCategory('food')">🍞 Food</button>
+                        </div>
+                        <div id="store-items" class="store-grid">
+                            <!-- Store items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div id="sell-tab" class="store-tab-content">
+                        <p>Select items from your inventory to sell:</p>
+                        <div id="sell-items" class="store-grid">
+                            <!-- Sellable items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Activities Section -->
+            <section id="activities-section" class="game-section">
+                <h2>Passive Activities</h2>
+                <div class="activities-container">
+                    <div class="activities-info">
+                        <p>Assign party members to passive activities to earn resources over time!</p>
+                        <div class="resource-display">
+                            <span>🍞 Food: <span id="player-food">20</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-assignment">
+                        <h3>Available Activities</h3>
+                        <div id="available-activities" class="activity-grid">
+                            <!-- Available activities will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="active-assignments">
+                        <h3>Active Assignments</h3>
+                        <div id="active-assignments" class="assignment-grid">
+                            <!-- Active assignments will be populated by JavaScript -->
+                        </div>
                     </div>
                 </div>
             </section>

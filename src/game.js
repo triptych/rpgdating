@@ -7,7 +7,8 @@ let gameState = {
         level: 1,
         experience: 0,
         totalPlayTime: 0,
-        lastSaveTime: Date.now()
+        lastSaveTime: Date.now(),
+        food: 20
     },
     party: [],
     inventory: [
@@ -18,6 +19,7 @@ let gameState = {
     recruitmentPool: [],
     currentLocation: 'tavern',
     dungeonProgress: {},
+    passiveActivities: {}, // Track ongoing passive activities
     gameProgress: {
         dungeonsCompleted: {},
         achievementsUnlocked: [],
@@ -68,6 +70,191 @@ const datingActivities = [
     { id: 'shopping', name: 'Shopping Spree', icon: '🛍️', cost: 25, energyCost: 1, boosts: { charisma: 2, intelligence: 1 } },
     { id: 'picnic', name: 'Romantic Picnic', icon: '🧺', cost: 12, energyCost: 1, boosts: { charisma: 3, defense: 1 } }
 ];
+
+// Dungeon Areas with specialized loot
+const dungeonAreas = {
+    'goblin-caves': {
+        name: 'Goblin Caves',
+        icon: '🟢',
+        difficulty: 1,
+        energyCost: 2,
+        enemies: ['Goblin Scout', 'Goblin Warrior'],
+        rewards: { gold: [15, 25], experience: [30, 50] },
+        lootSpecialty: 'gold',
+        lootTable: [
+            { name: 'Goblin Coin Pouch', type: 'treasure', icon: '💰', effect: '+50 Gold', rarity: 'common', value: 50, weight: 0.4 },
+            { name: 'Rusty Dagger', type: 'weapon', icon: '🗡️', effect: '+3 Attack', rarity: 'common', value: 25, weight: 0.3 },
+            { name: 'Tattered Cloak', type: 'armor', icon: '🧥', effect: '+2 Defense', rarity: 'common', value: 20, weight: 0.2 },
+            { name: 'Gold Nugget', type: 'treasure', icon: '✨', effect: '+100 Gold', rarity: 'uncommon', value: 100, weight: 0.1 }
+        ]
+    },
+    'ancient-armory': {
+        name: 'Ancient Armory',
+        icon: '⚔️',
+        difficulty: 2,
+        energyCost: 3,
+        enemies: ['Animated Sword', 'Guardian Construct'],
+        rewards: { gold: [25, 40], experience: [60, 90] },
+        lootSpecialty: 'weapons',
+        lootTable: [
+            { name: 'Steel Sword', type: 'weapon', icon: '⚔️', effect: '+8 Attack', rarity: 'common', value: 80, weight: 0.3 },
+            { name: 'Battle Axe', type: 'weapon', icon: '🪓', effect: '+10 Attack, -2 Agility', rarity: 'common', value: 90, weight: 0.25 },
+            { name: 'Enchanted Blade', type: 'weapon', icon: '✨', effect: '+12 Attack, +3 Magic', rarity: 'uncommon', value: 150, weight: 0.15 },
+            { name: 'Masterwork Bow', type: 'weapon', icon: '🏹', effect: '+9 Attack, +4 Agility', rarity: 'uncommon', value: 120, weight: 0.2 },
+            { name: 'Legendary Sword', type: 'weapon', icon: '🗡️', effect: '+15 Attack, +5 Charisma', rarity: 'rare', value: 300, weight: 0.1 }
+        ]
+    },
+    'crystal-caverns': {
+        name: 'Crystal Caverns',
+        icon: '💎',
+        difficulty: 2,
+        energyCost: 3,
+        enemies: ['Crystal Golem', 'Gem Spider'],
+        rewards: { gold: [30, 50], experience: [70, 100] },
+        lootSpecialty: 'magic',
+        lootTable: [
+            { name: 'Magic Crystal', type: 'consumable', icon: '💎', effect: '+5 Magic permanently', rarity: 'uncommon', value: 100, weight: 0.2 },
+            { name: 'Mana Potion', type: 'consumable', icon: '🧪', effect: '+30 MP', rarity: 'common', value: 25, weight: 0.3 },
+            { name: 'Crystal Staff', type: 'weapon', icon: '🔮', effect: '+6 Attack, +8 Magic', rarity: 'uncommon', value: 140, weight: 0.2 },
+            { name: 'Enchanted Robes', type: 'armor', icon: '👘', effect: '+3 Defense, +6 Magic', rarity: 'uncommon', value: 110, weight: 0.15 },
+            { name: 'Arcane Tome', type: 'consumable', icon: '📜', effect: '+3 Intelligence permanently', rarity: 'rare', value: 200, weight: 0.15 }
+        ]
+    },
+    'iron-fortress': {
+        name: 'Iron Fortress',
+        icon: '🛡️',
+        difficulty: 3,
+        energyCost: 4,
+        enemies: ['Iron Guardian', 'Fortress Knight'],
+        rewards: { gold: [40, 70], experience: [100, 150] },
+        lootSpecialty: 'armor',
+        lootTable: [
+            { name: 'Iron Armor', type: 'armor', icon: '🛡️', effect: '+8 Defense', rarity: 'common', value: 100, weight: 0.3 },
+            { name: 'Knight\'s Helm', type: 'armor', icon: '⛑️', effect: '+5 Defense, +2 Charisma', rarity: 'common', value: 80, weight: 0.25 },
+            { name: 'Fortress Shield', type: 'armor', icon: '🛡️', effect: '+12 Defense, +3 Attack', rarity: 'uncommon', value: 180, weight: 0.2 },
+            { name: 'Plate Mail', type: 'armor', icon: '🦾', effect: '+15 Defense, -3 Agility', rarity: 'uncommon', value: 200, weight: 0.15 },
+            { name: 'Legendary Armor', type: 'armor', icon: '✨', effect: '+20 Defense, +5 All Stats', rarity: 'rare', value: 500, weight: 0.1 }
+        ]
+    },
+    'shadow-realm': {
+        name: 'Shadow Realm',
+        icon: '🌑',
+        difficulty: 4,
+        energyCost: 5,
+        enemies: ['Shadow Wraith', 'Void Walker'],
+        rewards: { gold: [60, 100], experience: [150, 250] },
+        lootSpecialty: 'rare',
+        lootTable: [
+            { name: 'Shadow Essence', type: 'consumable', icon: '🌫️', effect: '+4 All Stats permanently', rarity: 'rare', value: 300, weight: 0.2 },
+            { name: 'Void Blade', type: 'weapon', icon: '⚫', effect: '+18 Attack, +8 Magic', rarity: 'rare', value: 400, weight: 0.15 },
+            { name: 'Cloak of Shadows', type: 'armor', icon: '🖤', effect: '+10 Defense, +12 Agility', rarity: 'rare', value: 350, weight: 0.15 },
+            { name: 'Dark Grimoire', type: 'consumable', icon: '📖', effect: '+8 Magic, +5 Intelligence permanently', rarity: 'epic', value: 600, weight: 0.1 },
+            { name: 'Ring of Power', type: 'accessory', icon: '💍', effect: '+10 All Stats', rarity: 'epic', value: 1000, weight: 0.05 }
+        ]
+    },
+    'treasure-vault': {
+        name: 'Ancient Treasure Vault',
+        icon: '💰',
+        difficulty: 3,
+        energyCost: 4,
+        enemies: ['Treasure Guardian', 'Mimic Chest'],
+        rewards: { gold: [80, 150], experience: [120, 180] },
+        lootSpecialty: 'gold',
+        lootTable: [
+            { name: 'Gold Bars', type: 'treasure', icon: '🟨', effect: '+200 Gold', rarity: 'uncommon', value: 200, weight: 0.3 },
+            { name: 'Jeweled Crown', type: 'treasure', icon: '👑', effect: '+500 Gold', rarity: 'rare', value: 500, weight: 0.15 },
+            { name: 'Ancient Coins', type: 'treasure', icon: '🪙', effect: '+100 Gold', rarity: 'common', value: 100, weight: 0.35 },
+            { name: 'Diamond Ring', type: 'accessory', icon: '💎', effect: '+5 Charisma, +3 All Stats', rarity: 'rare', value: 400, weight: 0.1 },
+            { name: 'Merchant\'s Blessing', type: 'consumable', icon: '✨', effect: 'Double gold from next 5 dungeons', rarity: 'epic', value: 300, weight: 0.1 }
+        ]
+    }
+};
+
+// Passive Activities for party members
+const passiveActivities = {
+    'mining': {
+        name: 'Mining',
+        icon: '⛏️',
+        description: 'Gather precious metals and gems',
+        duration: 3600000, // 1 hour in milliseconds
+        rewards: { gold: [10, 25], items: ['Iron Ore', 'Silver Nugget', 'Gem Fragment'] },
+        requiredStats: { attack: 5 },
+        energyCost: 0
+    },
+    'farming': {
+        name: 'Farming',
+        icon: '🌾',
+        description: 'Grow food and herbs',
+        duration: 7200000, // 2 hours
+        rewards: { food: [5, 15], items: ['Fresh Bread', 'Healing Herbs', 'Magic Berries'] },
+        requiredStats: { intelligence: 3 },
+        energyCost: 0
+    },
+    'crafting': {
+        name: 'Crafting',
+        icon: '🔨',
+        description: 'Create useful items and equipment',
+        duration: 5400000, // 1.5 hours
+        rewards: { gold: [15, 30], items: ['Crafted Potion', 'Simple Weapon', 'Basic Armor'] },
+        requiredStats: { intelligence: 7, attack: 3 },
+        energyCost: 0
+    },
+    'trading': {
+        name: 'Trading',
+        icon: '💼',
+        description: 'Buy and sell goods for profit',
+        duration: 1800000, // 30 minutes
+        rewards: { gold: [20, 40] },
+        requiredStats: { charisma: 8 },
+        energyCost: 0
+    },
+    'studying': {
+        name: 'Studying',
+        icon: '📚',
+        description: 'Research magic and gain knowledge',
+        duration: 4800000, // 80 minutes
+        rewards: { experience: [50, 100], items: ['Spell Scroll', 'Knowledge Tome'] },
+        requiredStats: { intelligence: 10 },
+        energyCost: 0
+    },
+    'guard-duty': {
+        name: 'Guard Duty',
+        icon: '🛡️',
+        description: 'Protect the town and earn steady income',
+        duration: 10800000, // 3 hours
+        rewards: { gold: [30, 50], experience: [30, 60] },
+        requiredStats: { defense: 8, attack: 6 },
+        energyCost: 0
+    }
+};
+
+// Store items for buying/selling
+const storeItems = {
+    weapons: [
+        { name: 'Iron Sword', type: 'weapon', icon: '⚔️', effect: '+5 Attack', rarity: 'common', buyPrice: 75, sellPrice: 50 },
+        { name: 'Steel Blade', type: 'weapon', icon: '🗡️', effect: '+8 Attack', rarity: 'common', buyPrice: 120, sellPrice: 80 },
+        { name: 'Magic Staff', type: 'weapon', icon: '🔮', effect: '+4 Attack, +6 Magic', rarity: 'uncommon', buyPrice: 200, sellPrice: 140 },
+        { name: 'War Hammer', type: 'weapon', icon: '🔨', effect: '+12 Attack, -2 Agility', rarity: 'uncommon', buyPrice: 180, sellPrice: 120 }
+    ],
+    armor: [
+        { name: 'Leather Armor', type: 'armor', icon: '🛡️', effect: '+3 Defense', rarity: 'common', buyPrice: 45, sellPrice: 30 },
+        { name: 'Chain Mail', type: 'armor', icon: '⛓️', effect: '+6 Defense', rarity: 'common', buyPrice: 90, sellPrice: 60 },
+        { name: 'Plate Armor', type: 'armor', icon: '🦾', effect: '+10 Defense, -1 Agility', rarity: 'uncommon', buyPrice: 150, sellPrice: 100 },
+        { name: 'Magic Robes', type: 'armor', icon: '👘', effect: '+4 Defense, +5 Magic', rarity: 'uncommon', buyPrice: 130, sellPrice: 90 }
+    ],
+    consumables: [
+        { name: 'Health Potion', type: 'consumable', icon: '🧪', effect: '+20 HP', rarity: 'common', buyPrice: 25, sellPrice: 15 },
+        { name: 'Mana Potion', type: 'consumable', icon: '💙', effect: '+15 MP', rarity: 'common', buyPrice: 20, sellPrice: 12 },
+        { name: 'Energy Drink', type: 'consumable', icon: '⚡', effect: '+2 Energy', rarity: 'common', buyPrice: 30, sellPrice: 20 },
+        { name: 'Stat Boost Elixir', type: 'consumable', icon: '✨', effect: '+2 Random Stat permanently', rarity: 'rare', buyPrice: 500, sellPrice: 300 }
+    ],
+    food: [
+        { name: 'Bread', type: 'food', icon: '🍞', effect: 'Restores 5 HP', rarity: 'common', buyPrice: 5, sellPrice: 2 },
+        { name: 'Cheese', type: 'food', icon: '🧀', effect: 'Restores 8 HP', rarity: 'common', buyPrice: 8, sellPrice: 4 },
+        { name: 'Cooked Meat', type: 'food', icon: '🍖', effect: 'Restores 15 HP', rarity: 'common', buyPrice: 15, sellPrice: 8 },
+        { name: 'Magic Fruit', type: 'food', icon: '🍎', effect: 'Restores 10 HP, +1 MP', rarity: 'uncommon', buyPrice: 25, sellPrice: 15 }
+    ]
+};
 
 // Relationship levels
 const relationshipLevels = [
@@ -415,6 +602,12 @@ function showSection(sectionName) {
         case 'dungeon':
             updateDungeonSection();
             break;
+        case 'store':
+            showStoreTab('buy');
+            break;
+        case 'activities':
+            updateActivitiesSection();
+            break;
         case 'inventory':
             updateInventoryDisplay();
             break;
@@ -425,6 +618,12 @@ function updateUI() {
     document.getElementById('player-gold').textContent = gameState.player.gold;
     document.getElementById('player-energy').textContent = `${gameState.player.energy}/${gameState.player.maxEnergy}`;
     document.getElementById('player-level').textContent = gameState.player.level;
+    
+    // Update food display if element exists
+    const foodElement = document.getElementById('player-food');
+    if (foodElement) {
+        foodElement.textContent = gameState.player.food || 0;
+    }
 }
 
 function updateRecruitmentPool() {
@@ -633,29 +832,171 @@ function startDungeon() {
         return;
     }
     
-    if (gameState.player.energy < 3) {
-        alert('You need at least 3 energy to enter a dungeon!');
+    const dungeonType = document.getElementById('dungeon-choice').value;
+    const dungeon = dungeonAreas[dungeonType];
+    
+    if (!dungeon) {
+        alert('Invalid dungeon selected!');
         return;
     }
     
-    const dungeonType = document.getElementById('dungeon-choice').value;
+    if (gameState.player.energy < dungeon.energyCost) {
+        alert(`You need at least ${dungeon.energyCost} energy to enter this dungeon!`);
+        return;
+    }
     
     // Deduct energy
-    gameState.player.energy -= 3;
+    gameState.player.energy -= dungeon.energyCost;
     updateUI();
     
-    // Start battle simulation
-    simulateDungeonBattle(dungeonType);
+    // Start battle simulation with new system
+    simulateNewDungeonBattle(dungeonType);
 }
 
+function simulateNewDungeonBattle(dungeonType) {
+    const dungeon = dungeonAreas[dungeonType];
+    
+    // Calculate party strength
+    let partyStrength = 0;
+    gameState.party.forEach(character => {
+        const relationship = getRelationshipLevel(character.affection);
+        const bonus = relationship.statBonus;
+        partyStrength += character.stats.attack + character.stats.defense + character.stats.magic + bonus * 3;
+    });
+    
+    const requiredStrength = dungeon.difficulty * 30; // Adjusted for new system
+    const success = partyStrength >= requiredStrength * 0.7; // 70% threshold for success
+    
+    let rewards = {
+        gold: dungeon.rewards.gold[0] + Math.floor(Math.random() * (dungeon.rewards.gold[1] - dungeon.rewards.gold[0] + 1)),
+        experience: dungeon.rewards.experience[0] + Math.floor(Math.random() * (dungeon.rewards.experience[1] - dungeon.rewards.experience[0] + 1))
+    };
+    
+    let lootFound = [];
+    
+    if (success) {
+        // Generate loot based on loot table
+        const numLootRolls = Math.floor(Math.random() * 3) + 1; // 1-3 items
+        for (let i = 0; i < numLootRolls; i++) {
+            const loot = generateLoot(dungeon.lootTable);
+            if (loot) {
+                lootFound.push(loot);
+                // Add to inventory
+                gameState.inventory.push({
+                    id: Date.now() + Math.random(),
+                    ...loot
+                });
+            }
+        }
+        
+        // Apply rewards
+        gameState.player.gold += rewards.gold;
+        gameState.party.forEach(character => {
+            character.level += Math.floor(rewards.experience / 100);
+        });
+        
+        // Track progress
+        if (!gameState.gameProgress.dungeonsCompleted[dungeonType]) {
+            gameState.gameProgress.dungeonsCompleted[dungeonType] = 0;
+        }
+        gameState.gameProgress.dungeonsCompleted[dungeonType]++;
+        gameState.gameProgress.totalDungeonsCleared++;
+    }
+    
+    // Show battle modal with new system
+    showNewBattleResult(dungeon, success, partyStrength, requiredStrength, rewards, lootFound);
+}
+
+function generateLoot(lootTable) {
+    const roll = Math.random();
+    let cumulativeWeight = 0;
+    
+    for (const item of lootTable) {
+        cumulativeWeight += item.weight;
+        if (roll <= cumulativeWeight) {
+            return { ...item };
+        }
+    }
+    
+    return null; // No loot
+}
+
+function showNewBattleResult(dungeon, success, partyStrength, requiredStrength, rewards, lootFound) {
+    const modal = document.getElementById('battle-modal');
+    const battleArea = document.getElementById('battle-area');
+    
+    if (success) {
+        const lootDisplay = lootFound.length > 0 ? 
+            `<div class="loot-found">
+                <h4>Loot Found:</h4>
+                ${lootFound.map(item => `<div class="loot-item">${item.icon} ${item.name} (${item.rarity})</div>`).join('')}
+            </div>` : '<div>No special loot found this time.</div>';
+        
+        battleArea.innerHTML = `
+            <h3>Victory!</h3>
+            <p>Your party successfully conquered the ${dungeon.name}!</p>
+            <div class="battle-participants">
+                <div class="battle-party">
+                    <h4>Your Party (Strength: ${partyStrength})</h4>
+                    ${gameState.party.map(c => `<div>${c.icon} ${c.name}</div>`).join('')}
+                </div>
+                <div class="battle-enemies">
+                    <h4>Enemies Defeated</h4>
+                    ${dungeon.enemies.map(e => `<div>💀 ${e}</div>`).join('')}
+                </div>
+            </div>
+            <div class="battle-log">
+                <div>🎉 Victory achieved!</div>
+                <div>💰 +${rewards.gold} Gold</div>
+                <div>⭐ +${rewards.experience} Experience</div>
+                <div>📈 Party members leveled up!</div>
+                ${lootDisplay}
+            </div>
+            <button class="battle-btn" onclick="closeBattleModal()">Continue</button>
+        `;
+    } else {
+        battleArea.innerHTML = `
+            <h3>Defeat...</h3>
+            <p>Your party was not strong enough for the ${dungeon.name}.</p>
+            <div class="battle-participants">
+                <div class="battle-party">
+                    <h4>Your Party (Strength: ${partyStrength})</h4>
+                    ${gameState.party.map(c => `<div>${c.icon} ${c.name}</div>`).join('')}
+                </div>
+                <div class="battle-enemies">
+                    <h4>Enemies (Required: ${requiredStrength})</h4>
+                    ${dungeon.enemies.map(e => `<div>💀 ${e}</div>`).join('')}
+                </div>
+            </div>
+            <div class="battle-log">
+                <div>💔 Your party was defeated...</div>
+                <div>💡 Try dating your party members to boost their stats!</div>
+                <div>📈 Stronger relationships = Better combat performance</div>
+                <div>🏋️ This dungeon specializes in: ${dungeon.lootSpecialty}</div>
+            </div>
+            <button class="battle-btn" onclick="closeBattleModal()">Retreat</button>
+        `;
+    }
+    
+    modal.style.display = 'block';
+}
+
+// Legacy function for compatibility
 function simulateDungeonBattle(dungeonType) {
+    // Redirect to new system if dungeon exists in new areas
+    if (dungeonAreas[dungeonType]) {
+        simulateNewDungeonBattle(dungeonType);
+        return;
+    }
+    
+    // Fallback to old system for legacy dungeons
     const dungeons = {
-        'goblin-caves': { name: 'Goblin Caves', difficulty: 1, enemies: ['Goblin', 'Goblin Warrior'], rewards: { gold: 30, experience: 50 } },
         'haunted-mansion': { name: 'Haunted Mansion', difficulty: 2, enemies: ['Ghost', 'Skeleton'], rewards: { gold: 60, experience: 100 } },
         'dragon-lair': { name: "Dragon's Lair", difficulty: 3, enemies: ['Dragon Minion', 'Young Dragon'], rewards: { gold: 120, experience: 200 } }
     };
     
     const dungeon = dungeons[dungeonType];
+    if (!dungeon) return;
     
     // Calculate party strength
     let partyStrength = 0;
@@ -666,7 +1007,7 @@ function simulateDungeonBattle(dungeonType) {
     });
     
     const requiredStrength = dungeon.difficulty * 40;
-    const success = partyStrength >= requiredStrength * 0.8; // 80% threshold for success
+    const success = partyStrength >= requiredStrength * 0.8;
     
     // Show battle modal
     showBattleResult(dungeon, success, partyStrength, requiredStrength);
@@ -903,6 +1244,343 @@ function showProfileTab(tabName, characterId) {
 
 function closeModal() {
     document.getElementById('character-modal').style.display = 'none';
+}
+
+// Store Functions
+function showStoreTab(tabName) {
+    // Hide all store tabs
+    document.querySelectorAll('.store-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.store-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+    
+    if (tabName === 'buy') {
+        showStoreCategory('weapons');
+    } else {
+        updateSellItems();
+    }
+}
+
+function showStoreCategory(category) {
+    // Remove active class from all category buttons
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+    
+    const storeItemsContainer = document.getElementById('store-items');
+    storeItemsContainer.innerHTML = '';
+    
+    const items = storeItems[category] || [];
+    
+    items.forEach(item => {
+        const itemCard = document.createElement('div');
+        itemCard.className = 'store-item-card';
+        itemCard.onclick = () => buyItem(item);
+        
+        itemCard.innerHTML = `
+            <div class="item-icon">${item.icon}</div>
+            <div class="item-name">${item.name}</div>
+            <div class="item-effect">${item.effect}</div>
+            <div class="item-price">💰 ${item.buyPrice} Gold</div>
+            <div class="item-rarity ${item.rarity}">${item.rarity}</div>
+        `;
+        
+        if (gameState.player.gold < item.buyPrice) {
+            itemCard.style.opacity = '0.5';
+            itemCard.style.cursor = 'not-allowed';
+        }
+        
+        storeItemsContainer.appendChild(itemCard);
+    });
+}
+
+function buyItem(item) {
+    if (gameState.player.gold < item.buyPrice) {
+        alert('Not enough gold to buy this item!');
+        return;
+    }
+    
+    gameState.player.gold -= item.buyPrice;
+    gameState.inventory.push({
+        id: Date.now() + Math.random(),
+        name: item.name,
+        type: item.type,
+        icon: item.icon,
+        effect: item.effect,
+        rarity: item.rarity,
+        value: item.sellPrice
+    });
+    
+    updateUI();
+    alert(`Purchased ${item.name} for ${item.buyPrice} gold!`);
+}
+
+function updateSellItems() {
+    const sellItemsContainer = document.getElementById('sell-items');
+    sellItemsContainer.innerHTML = '';
+    
+    if (gameState.inventory.length === 0) {
+        sellItemsContainer.innerHTML = '<p>No items to sell.</p>';
+        return;
+    }
+    
+    gameState.inventory.forEach((item, index) => {
+        const itemCard = document.createElement('div');
+        itemCard.className = 'store-item-card';
+        itemCard.onclick = () => sellItem(index);
+        
+        const sellPrice = item.value || Math.floor((item.buyPrice || 50) * 0.6);
+        
+        itemCard.innerHTML = `
+            <div class="item-icon">${item.icon}</div>
+            <div class="item-name">${item.name}</div>
+            <div class="item-effect">${item.effect}</div>
+            <div class="item-price">💰 ${sellPrice} Gold</div>
+            <div class="item-rarity ${item.rarity || 'common'}">${item.rarity || 'common'}</div>
+        `;
+        
+        sellItemsContainer.appendChild(itemCard);
+    });
+}
+
+function sellItem(itemIndex) {
+    const item = gameState.inventory[itemIndex];
+    const sellPrice = item.value || Math.floor((item.buyPrice || 50) * 0.6);
+    
+    if (confirm(`Sell ${item.name} for ${sellPrice} gold?`)) {
+        gameState.player.gold += sellPrice;
+        gameState.inventory.splice(itemIndex, 1);
+        
+        updateUI();
+        updateSellItems();
+        alert(`Sold ${item.name} for ${sellPrice} gold!`);
+    }
+}
+
+// Passive Activities Functions
+function updateActivitiesSection() {
+    updateAvailableActivities();
+    updateActiveAssignments();
+}
+
+function updateAvailableActivities() {
+    const activitiesContainer = document.getElementById('available-activities');
+    activitiesContainer.innerHTML = '';
+    
+    Object.entries(passiveActivities).forEach(([activityId, activity]) => {
+        const activityCard = document.createElement('div');
+        activityCard.className = 'activity-card';
+        
+        const duration = Math.floor(activity.duration / 60000); // Convert to minutes
+        const rewardText = Object.entries(activity.rewards)
+            .map(([type, range]) => {
+                if (Array.isArray(range)) {
+                    return `${range[0]}-${range[1]} ${type}`;
+                }
+                return `${range} ${type}`;
+            }).join(', ');
+        
+        const reqText = Object.entries(activity.requiredStats)
+            .map(([stat, value]) => `${stat} ${value}+`)
+            .join(', ');
+        
+        activityCard.innerHTML = `
+            <div class="activity-icon">${activity.icon}</div>
+            <div class="activity-name">${activity.name}</div>
+            <div class="activity-description">${activity.description}</div>
+            <div class="activity-duration">⏱️ ${duration} minutes</div>
+            <div class="activity-rewards">Rewards: ${rewardText}</div>
+            <div class="activity-requirements">Requires: ${reqText}</div>
+            <button class="assign-btn" onclick="showAssignmentModal('${activityId}')">Assign Character</button>
+        `;
+        
+        activitiesContainer.appendChild(activityCard);
+    });
+}
+
+function showAssignmentModal(activityId) {
+    const activity = passiveActivities[activityId];
+    const availableCharacters = gameState.party.filter(character => {
+        // Check if character meets requirements
+        return Object.entries(activity.requiredStats).every(([stat, required]) => {
+            return character.stats[stat] >= required;
+        });
+    }).filter(character => {
+        // Check if character is not already assigned
+        return !Object.values(gameState.passiveActivities).some(assignment => 
+            assignment.characterId === character.id
+        );
+    });
+    
+    if (availableCharacters.length === 0) {
+        alert('No available characters meet the requirements for this activity!');
+        return;
+    }
+    
+    const characterList = availableCharacters.map(char => 
+        `<div class="assignment-option" onclick="assignCharacterToActivity('${char.id}', '${activityId}')">
+            ${char.icon} ${char.name} (${char.className})
+        </div>`
+    ).join('');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Assign Character to ${activity.name}</h3>
+            <p>${activity.description}</p>
+            <div class="character-selection">
+                ${characterList}
+            </div>
+            <button onclick="document.body.removeChild(this.closest('.modal'))">Cancel</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function assignCharacterToActivity(characterId, activityId) {
+    const character = gameState.party.find(c => c.id == characterId);
+    const activity = passiveActivities[activityId];
+    
+    if (!character || !activity) return;
+    
+    const assignmentId = Date.now() + Math.random();
+    gameState.passiveActivities[assignmentId] = {
+        characterId: characterId,
+        activityId: activityId,
+        startTime: Date.now(),
+        endTime: Date.now() + activity.duration
+    };
+    
+    // Close modal
+    const modal = document.querySelector('.modal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+    
+    updateActiveAssignments();
+    updateAvailableActivities();
+    
+    alert(`${character.name} has been assigned to ${activity.name}!`);
+}
+
+function updateActiveAssignments() {
+    const assignmentsContainer = document.getElementById('active-assignments');
+    assignmentsContainer.innerHTML = '';
+    
+    const activeAssignments = Object.entries(gameState.passiveActivities);
+    
+    if (activeAssignments.length === 0) {
+        assignmentsContainer.innerHTML = '<p>No active assignments.</p>';
+        return;
+    }
+    
+    activeAssignments.forEach(([assignmentId, assignment]) => {
+        const character = gameState.party.find(c => c.id == assignment.characterId);
+        const activity = passiveActivities[assignment.activityId];
+        
+        if (!character || !activity) return;
+        
+        const now = Date.now();
+        const timeRemaining = Math.max(0, assignment.endTime - now);
+        const isComplete = timeRemaining === 0;
+        
+        const assignmentCard = document.createElement('div');
+        assignmentCard.className = 'assignment-card';
+        
+        if (isComplete) {
+            assignmentCard.classList.add('complete');
+        }
+        
+        const timeText = isComplete ? 'Complete!' : 
+            `${Math.floor(timeRemaining / 60000)}m ${Math.floor((timeRemaining % 60000) / 1000)}s`;
+        
+        assignmentCard.innerHTML = `
+            <div class="assignment-character">${character.icon} ${character.name}</div>
+            <div class="assignment-activity">${activity.icon} ${activity.name}</div>
+            <div class="assignment-time">${timeText}</div>
+            ${isComplete ? 
+                `<button class="collect-btn" onclick="collectRewards('${assignmentId}')">Collect Rewards</button>` :
+                `<button class="cancel-btn" onclick="cancelAssignment('${assignmentId}')">Cancel</button>`
+            }
+        `;
+        
+        assignmentsContainer.appendChild(assignmentCard);
+    });
+}
+
+function collectRewards(assignmentId) {
+    const assignment = gameState.passiveActivities[assignmentId];
+    const activity = passiveActivities[assignment.activityId];
+    const character = gameState.party.find(c => c.id == assignment.characterId);
+    
+    if (!assignment || !activity || !character) return;
+    
+    let rewardText = [];
+    
+    // Apply rewards
+    Object.entries(activity.rewards).forEach(([type, range]) => {
+        if (type === 'gold') {
+            const amount = Array.isArray(range) ? 
+                range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1)) : range;
+            gameState.player.gold += amount;
+            rewardText.push(`${amount} gold`);
+        } else if (type === 'food') {
+            const amount = Array.isArray(range) ? 
+                range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1)) : range;
+            gameState.player.food = (gameState.player.food || 0) + amount;
+            rewardText.push(`${amount} food`);
+        } else if (type === 'experience') {
+            const amount = Array.isArray(range) ? 
+                range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1)) : range;
+            character.level += Math.floor(amount / 100);
+            rewardText.push(`${amount} experience`);
+        } else if (type === 'items') {
+            const item = range[Math.floor(Math.random() * range.length)];
+            gameState.inventory.push({
+                id: Date.now() + Math.random(),
+                name: item,
+                type: 'material',
+                icon: '📦',
+                effect: 'Crafting material',
+                rarity: 'common',
+                value: 10
+            });
+            rewardText.push(item);
+        }
+    });
+    
+    // Remove assignment
+    delete gameState.passiveActivities[assignmentId];
+    
+    updateUI();
+    updateActiveAssignments();
+    updateAvailableActivities();
+    
+    alert(`${character.name} completed ${activity.name}! Rewards: ${rewardText.join(', ')}`);
+}
+
+function cancelAssignment(assignmentId) {
+    if (confirm('Are you sure you want to cancel this assignment?')) {
+        delete gameState.passiveActivities[assignmentId];
+        updateActiveAssignments();
+        updateAvailableActivities();
+    }
 }
 
 // Event listener for dating partner selection
