@@ -14,7 +14,9 @@ import {
     relationshipLevels, 
     characterNames, 
     personalityTypes, 
-    personalityCompatibility 
+    personalityCompatibility,
+    giftItems,
+    giftOutcomes
 } from './modules/game-data.js';
 
 // Character selector components
@@ -254,24 +256,29 @@ function showSection(sectionName) {
     switch(sectionName) {
         case 'recruitment':
             updateRecruitmentPool();
+            triggerContextualMessage('recruitment');
             break;
         case 'party':
             updatePartyDisplay();
             break;
         case 'dating':
             updateDatingSection();
+            triggerContextualMessage('dating');
             break;
         case 'dungeon':
             updateDungeonSection();
+            triggerContextualMessage('dungeon');
             break;
         case 'store':
             showStoreTab('buy');
+            triggerContextualMessage('store');
             break;
         case 'activities':
             updateActivitiesSection();
             break;
         case 'inventory':
             updateInventoryDisplay();
+            triggerContextualMessage('inventory');
             break;
     }
 }
@@ -349,6 +356,19 @@ function updateDatingActivities() {
         return;
     }
     
+    // Add Gift Button
+    const giftButton = document.createElement('div');
+    giftButton.className = 'activity-card gift-card';
+    giftButton.onclick = () => showGiftModal(selectedCharacterId);
+    giftButton.innerHTML = `
+        <div class="activity-icon">🎁</div>
+        <div class="activity-name">Give Gift</div>
+        <div class="activity-cost">Show your affection with a thoughtful present</div>
+        <div class="activity-boost">💖 Increases Affection</div>
+    `;
+    activitiesContainer.appendChild(giftButton);
+    
+    // Add regular dating activities
     datingActivities.forEach(activity => {
         const activityCard = document.createElement('div');
         activityCard.className = 'activity-card';
@@ -1620,8 +1640,8 @@ function showSpontaneousMessage(character, message) {
 function triggerSpontaneousMessages() {
     if (gameState.party.length === 0) return;
     
-    // Random chance for a message (5% per check)
-    if (Math.random() < 0.05) {
+    // Higher chance for a message (15% per check) and ensure messages appear more frequently
+    if (Math.random() < 0.15) {
         const randomCharacter = gameState.party[Math.floor(Math.random() * gameState.party.length)];
         const message = generateSpontaneousMessage(randomCharacter);
         
@@ -1631,7 +1651,7 @@ function triggerSpontaneousMessages() {
     }
 }
 
-// Energy regeneration and spontaneous messages (every 30 seconds in real-time)
+// Energy regeneration and spontaneous messages (every 15 seconds in real-time for more frequent messages)
 setInterval(() => {
     if (gameState.player.energy < gameState.player.maxEnergy) {
         gameState.player.energy = Math.min(gameState.player.maxEnergy, gameState.player.energy + 1);
@@ -1640,7 +1660,104 @@ setInterval(() => {
     
     // Trigger spontaneous messages
     triggerSpontaneousMessages();
-}, 30000);
+}, 15000);
+
+// Additional message triggers for specific actions
+function triggerContextualMessage(context) {
+    if (gameState.party.length === 0) return;
+    
+    // Higher chance for contextual messages (30%)
+    if (Math.random() < 0.3) {
+        const randomCharacter = gameState.party[Math.floor(Math.random() * gameState.party.length)];
+        const message = generateContextualMessage(randomCharacter, context);
+        
+        if (message) {
+            showSpontaneousMessage(randomCharacter, message);
+        }
+    }
+}
+
+// Generate contextual messages based on player actions
+function generateContextualMessage(character, context) {
+    const relationship = getRelationshipLevel(character.affection);
+    const personality = personalityTypes[character.personalityType];
+    
+    if (!personality) return null;
+    
+    const contextMessages = {
+        'recruitment': [
+            `${character.name} notices you talking to new people and looks curious.`,
+            `${character.name} wonders if you're looking for more party members.`,
+            `${character.name} hopes you're not replacing them with someone new.`
+        ],
+        'dating': [
+            `${character.name} smiles when they see you planning activities.`,
+            `${character.name} looks forward to spending time with you.`,
+            `${character.name} suggests trying something new together.`
+        ],
+        'dungeon': [
+            `${character.name} checks their equipment before the next adventure.`,
+            `${character.name} feels ready to face any challenge with you.`,
+            `${character.name} mentions they trust your leadership in battle.`
+        ],
+        'store': [
+            `${character.name} looks at the items with interest.`,
+            `${character.name} points out something they think would be useful.`,
+            `${character.name} offers to help carry your purchases.`
+        ],
+        'inventory': [
+            `${character.name} admires your collection of items.`,
+            `${character.name} asks about the story behind some of your gear.`,
+            `${character.name} offers to help organize your belongings.`
+        ]
+    };
+    
+    // Personality-specific contextual messages
+    const personalityContextMessages = {
+        'shy-bookworm': {
+            'store': [`${character.name} quietly suggests a book they think you'd enjoy.`],
+            'inventory': [`${character.name} carefully examines your books and scrolls.`]
+        },
+        'bold-adventurer': {
+            'dungeon': [`${character.name} eagerly anticipates the next battle.`],
+            'store': [`${character.name} eyes the weapons with excitement.`]
+        },
+        'mysterious-loner': {
+            'recruitment': [`${character.name} watches the newcomers with suspicion.`],
+            'dungeon': [`${character.name} silently prepares for what lies ahead.`]
+        },
+        'cheerful-optimist': {
+            'dating': [`${character.name} bounces with excitement about your plans.`],
+            'recruitment': [`${character.name} welcomes the idea of making new friends.`]
+        },
+        'serious-scholar': {
+            'store': [`${character.name} analyzes the practical value of each item.`],
+            'inventory': [`${character.name} suggests a more efficient organization system.`]
+        },
+        'flirtatious-charmer': {
+            'dating': [`${character.name} gives you a playful wink about your romantic plans.`],
+            'recruitment': [`${character.name} charms the potential new recruits.`]
+        }
+    };
+    
+    // Combine general and personality-specific messages
+    let possibleMessages = [...(contextMessages[context] || [])];
+    
+    if (personalityContextMessages[character.personalityType] && personalityContextMessages[character.personalityType][context]) {
+        possibleMessages.push(...personalityContextMessages[character.personalityType][context]);
+    }
+    
+    // Relationship-based message modifications
+    if (relationship.name === 'Romantic Interest' || relationship.name === 'Partner' || relationship.name === 'Soulmate') {
+        possibleMessages.push(`${character.name} stays close to you, enjoying your presence.`);
+        if (context === 'dating') {
+            possibleMessages.push(`${character.name} blushes thinking about your romantic plans.`);
+        }
+    }
+    
+    return possibleMessages.length > 0 ? 
+        possibleMessages[Math.floor(Math.random() * possibleMessages.length)] : null;
+}
 
 // Save System Core Functions
 class SaveSystem {
@@ -2181,6 +2298,150 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// Gift System Functions
+function showGiftModal(characterId) {
+    const character = gameState.party.find(c => c.id == characterId);
+    if (!character) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    
+    // Create gift categories
+    const giftCategoriesHTML = Object.entries(giftItems).map(([category, gifts]) => {
+        const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+        const giftCardsHTML = gifts.map(gift => {
+            const canAfford = gameState.player.gold >= gift.cost;
+            const cardClass = canAfford ? 'gift-item-card' : 'gift-item-card disabled';
+            
+            return `
+                <div class="${cardClass}" onclick="${canAfford ? `giveGift('${characterId}', '${category}', '${gift.name}')` : ''}">
+                    <div class="gift-icon">${gift.icon}</div>
+                    <div class="gift-name">${gift.name}</div>
+                    <div class="gift-cost">💰 ${gift.cost} Gold</div>
+                    <div class="gift-description">${gift.description}</div>
+                    <div class="gift-affection">+${gift.affectionBonus} Base Affection</div>
+                </div>
+            `;
+        }).join('');
+        
+        return `
+            <div class="gift-category">
+                <h4>${categoryName}</h4>
+                <div class="gift-items-grid">
+                    ${giftCardsHTML}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    modal.innerHTML = `
+        <div class="modal-content gift-modal-content">
+            <span class="close" onclick="document.body.removeChild(this.closest('.modal'))">&times;</span>
+            <h3>Choose a Gift for ${character.name}</h3>
+            <div class="character-gift-info">
+                <div class="gift-character-avatar">${character.icon}</div>
+                <div class="gift-character-details">
+                    <div><strong>${character.name}</strong> (${character.personalityName})</div>
+                    <div>Current Affection: ${character.affection}</div>
+                    <div>Relationship: ${getRelationshipLevel(character.affection).name}</div>
+                </div>
+            </div>
+            <div class="gift-hint">
+                <p>💡 <strong>Tip:</strong> Different personalities prefer different types of gifts. Choose wisely!</p>
+            </div>
+            <div class="gift-categories">
+                ${giftCategoriesHTML}
+            </div>
+            <div class="modal-footer">
+                <button onclick="document.body.removeChild(this.closest('.modal'))" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+async function giveGift(characterId, giftCategory, giftName) {
+    const character = gameState.party.find(c => c.id == characterId);
+    const gift = giftItems[giftCategory].find(g => g.name === giftName);
+    
+    if (!character || !gift) return;
+    
+    if (gameState.player.gold < gift.cost) {
+        await showAlert('Not enough gold to buy this gift!', 'error');
+        return;
+    }
+    
+    // Deduct cost
+    gameState.player.gold -= gift.cost;
+    
+    // Calculate affection gain based on personality preferences
+    const personalityPreference = character.giftPreferences[giftCategory] || 5; // Default neutral preference
+    const affectionGain = calculateGiftAffection(gift, personalityPreference);
+    
+    // Determine outcome based on preference match
+    const outcome = determineGiftOutcome(personalityPreference);
+    const outcomeData = giftOutcomes[outcome];
+    
+    // Apply affection gain
+    character.affection += Math.floor(affectionGain * outcomeData.multiplier);
+    
+    // Add to relationship history
+    if (!character.relationshipHistory) character.relationshipHistory = [];
+    character.relationshipHistory.push({
+        activity: `Gift: ${gift.name}`,
+        outcome: outcome,
+        affectionGain: Math.floor(affectionGain * outcomeData.multiplier),
+        timestamp: Date.now()
+    });
+    
+    // Close gift modal
+    const modal = document.querySelector('.modal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+    
+    // Update UI
+    updateUI();
+    updateDatingActivities();
+    updatePartyDisplay();
+    
+    // Show result
+    const totalAffectionGain = Math.floor(affectionGain * outcomeData.multiplier);
+    const resultMessage = `${outcomeData.message}\n\nAffection increased by ${totalAffectionGain}!`;
+    
+    await showAlert(resultMessage, 'success', `Gift Given to ${character.name}`);
+}
+
+function calculateGiftAffection(gift, personalityPreference) {
+    // Base affection from gift
+    let affection = gift.affectionBonus;
+    
+    // Personality preference modifier (1-10 scale)
+    // 1-3: Dislike, 4-6: Neutral, 7-8: Like, 9-10: Love
+    if (personalityPreference >= 9) {
+        affection *= 1.8; // Love it
+    } else if (personalityPreference >= 7) {
+        affection *= 1.4; // Like it
+    } else if (personalityPreference >= 4) {
+        affection *= 1.0; // Neutral
+    } else {
+        affection *= 0.6; // Dislike it
+    }
+    
+    return Math.floor(affection);
+}
+
+function determineGiftOutcome(personalityPreference) {
+    if (personalityPreference >= 10) return 'perfect';
+    if (personalityPreference >= 8) return 'great';
+    if (personalityPreference >= 6) return 'good';
+    if (personalityPreference >= 4) return 'neutral';
+    if (personalityPreference >= 2) return 'poor';
+    return 'terrible';
+}
+
 // Make functions globally available
 window.showSection = showSection;
 window.updateRecruitmentPool = updateRecruitmentPool;
@@ -2212,6 +2473,8 @@ window.equipItemToCharacter = equipItemToCharacter;
 window.unequipItem = unequipItem;
 window.showInventoryTab = showInventoryTab;
 window.showEquippedItemDetails = showEquippedItemDetails;
+window.showGiftModal = showGiftModal;
+window.giveGift = giveGift;
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', function() {

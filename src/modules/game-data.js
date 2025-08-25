@@ -356,3 +356,53 @@ export const personalityCompatibility = {
     'serious-scholar': { 'shy-bookworm': 2, 'mysterious-loner': 1, 'ambitious-leader': 1 },
     'flirtatious-charmer': { 'bold-adventurer': 1, 'mischievous-trickster': 1, 'ambitious-leader': 2 }
 };
+
+// Gift System - Available gifts for purchase and giving
+export const giftItems = {
+    books: [
+        { name: 'Poetry Collection', icon: '📖', cost: 15, affectionBonus: 5, description: 'Beautiful verses that touch the heart' },
+        { name: 'Adventure Novel', icon: '📚', cost: 20, affectionBonus: 6, description: 'Thrilling tales of heroic deeds' },
+        { name: 'Magic Tome', icon: '📜', cost: 35, affectionBonus: 8, description: 'Ancient knowledge of mystical arts' },
+        { name: 'Rare Manuscript', icon: '📋', cost: 50, affectionBonus: 12, description: 'Priceless historical document' }
+    ],
+    flowers: [
+        { name: 'Wild Flowers', icon: '🌸', cost: 8, affectionBonus: 4, description: 'Simple but heartfelt bouquet' },
+        { name: 'Rose Bouquet', icon: '🌹', cost: 18, affectionBonus: 7, description: 'Classic symbol of romance' },
+        { name: 'Exotic Orchids', icon: '🌺', cost: 30, affectionBonus: 10, description: 'Rare and beautiful flowers' },
+        { name: 'Enchanted Blossoms', icon: '✨', cost: 45, affectionBonus: 15, description: 'Magical flowers that never wilt' }
+    ],
+    jewelry: [
+        { name: 'Simple Ring', icon: '💍', cost: 25, affectionBonus: 6, description: 'Elegant silver band' },
+        { name: 'Pearl Necklace', icon: '📿', cost: 40, affectionBonus: 9, description: 'Lustrous pearls from the deep sea' },
+        { name: 'Gemstone Earrings', icon: '💎', cost: 60, affectionBonus: 12, description: 'Sparkling precious stones' },
+        { name: 'Royal Tiara', icon: '👑', cost: 100, affectionBonus: 20, description: 'Fit for royalty' }
+    ],
+    art: [
+        { name: 'Sketch Portrait', icon: '🖼️', cost: 12, affectionBonus: 5, description: 'Personal charcoal drawing' },
+        { name: 'Painted Landscape', icon: '🎨', cost: 28, affectionBonus: 8, description: 'Beautiful scenic artwork' },
+        { name: 'Sculpture', icon: '🗿', cost: 45, affectionBonus: 11, description: 'Masterfully carved stone art' },
+        { name: 'Magical Painting', icon: '✨', cost: 75, affectionBonus: 18, description: 'Artwork that moves and changes' }
+    ],
+    food: [
+        { name: 'Chocolate Box', icon: '🍫', cost: 10, affectionBonus: 4, description: 'Sweet treats to share' },
+        { name: 'Fruit Basket', icon: '🧺', cost: 15, affectionBonus: 5, description: 'Fresh seasonal fruits' },
+        { name: 'Gourmet Meal', icon: '🍽️', cost: 25, affectionBonus: 8, description: 'Expertly prepared delicacies' },
+        { name: 'Magical Feast', icon: '✨', cost: 50, affectionBonus: 15, description: 'Enchanted food that satisfies any craving' }
+    ],
+    weapons: [
+        { name: 'Training Sword', icon: '🗡️', cost: 20, affectionBonus: 5, description: 'Perfect for practice sessions' },
+        { name: 'Decorative Dagger', icon: '🔪', cost: 35, affectionBonus: 7, description: 'Beautiful ceremonial blade' },
+        { name: 'Enchanted Weapon', icon: '⚔️', cost: 60, affectionBonus: 10, description: 'Magically enhanced armament' },
+        { name: 'Legendary Blade', icon: '✨', cost: 120, affectionBonus: 22, description: 'Weapon of heroes and legends' }
+    ]
+};
+
+// Gift giving outcomes based on preference match
+export const giftOutcomes = {
+    perfect: { multiplier: 2.0, message: "Their eyes light up with pure joy! This is exactly what they wanted!" },
+    great: { multiplier: 1.5, message: "They smile warmly and seem genuinely pleased with your thoughtful gift." },
+    good: { multiplier: 1.2, message: "They appreciate the gesture and thank you kindly." },
+    neutral: { multiplier: 1.0, message: "They accept the gift politely, though they seem a bit unsure." },
+    poor: { multiplier: 0.7, message: "They try to hide their disappointment but accept it graciously." },
+    terrible: { multiplier: 0.3, message: "They look confused and uncomfortable. This clearly wasn't the right choice." }
+};
